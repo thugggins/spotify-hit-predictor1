@@ -1,617 +1,124 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Popularity Predictor (ML Demo)</title>
-    <!-- Load Tailwind CSS from CDN for modern, responsive styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles for a dark, Spotify-inspired theme */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap');
-        :root {
-            --spotify-green: #1DB954;
-            --dark-background: #121212;
-            --card-background: #1F1F1F;
-            --text-light: #FFFFFF;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--dark-background);
-        }
-        .predictor-card {
-            background-color: var(--card-background);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        /* Custom focus color */
-        input:focus, select:focus {
-            border-color: var(--spotify-green) !important;
-            box-shadow: 0 0 0 1px var(--spotify-green) !important;
-        }
-        /* Style for read-only/locked inputs */
-        .input-locked {
-            background-color: #303030; /* Darker background for locked state */
-            color: #A0A0A0; /* Grayed out text */
-            cursor: not-allowed;
-        }
-        /* Hide number input spinners */
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4">
+import requests
+import json
+import time
 
-    <!-- Main Prediction Application Card -->
-    <div class="predictor-card w-full max-w-lg shadow-2xl rounded-xl p-6 md:p-10 space-y-6">
+# NOTE: This script is designed to demonstrate the API logic.
+# You must obtain a valid Spotify API Access Token and replace the placeholder below.
+# A typical flow involves client credentials or authorization code flow to get this token.
+MOCK_ACCESS_TOKEN = "YOUR_SPOTIFY_API_ACCESS_TOKEN_HERE"
+ALBUM_ID_TO_FETCH = "4aawyRNdmt39sgEaC2T70O" # Example: Kendrick Lamar - DAMN.
 
-        <h1 class="text-3xl font-extrabold text-center text-white">
-            <span class="text-green-400">Spotify</span> Hit Predictor
-        </h1>
-        <p id="ready-message" class="text-center text-gray-400 text-sm">
-            Select an Artist, Genre, and optionally a Track for prediction.
-        </p>
-        
-        <!-- Input Form for Track Features -->
-        <div class="space-y-4">
+def get_spotify_data(url, token):
+    """
+    Generic function to make a GET request to the Spotify API with retry logic.
+    """
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status() # Raises an HTTPError for bad responses (4xx or 5xx)
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 401:
+                # Token is expired or invalid
+                print("ERROR: 401 Unauthorized. Check your MOCK_ACCESS_TOKEN.")
+                return None
+            elif response.status_code == 429 and attempt < max_retries - 1:
+                # Rate limit hit, wait and retry
+                wait_time = 2 ** attempt # Exponential backoff
+                print(f"Rate limit hit. Waiting for {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"HTTP Error {response.status_code}: {e}")
+                return None
+        except requests.exceptions.RequestException as e:
+            print(f"A general request error occurred: {e}")
+            return None
+    print("Failed to fetch data after multiple retries.")
+    return None
 
-            <!-- 1. Artist and Genre Dropdowns (Primary Inputs) -->
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Artist Name -->
-                <div>
-                    <label for="artist-select" class="block text-sm font-medium text-gray-300">Select Artist</label>
-                    <select id="artist-select" onchange="handleArtistChange()"
-                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                        <!-- Options populated by JS -->
-                    </select>
-                </div>
-                
-                <!-- Genre -->
-                <div>
-                    <label for="genre-select" class="block text-sm font-medium text-gray-300">Select Genre</label>
-                    <select id="genre-select" onchange="handleGenreChange()"
-                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                        <!-- Options populated by JS -->
-                    </select>
-                </div>
-            </div>
-            
-            <!-- 2. Track Selector -->
-            <div>
-                <label for="track-select" class="block text-sm font-medium text-gray-300">Select Track</label>
-                <select id="track-select" onchange="handleTrackChange()"
-                        class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                    <!-- Options populated by JS -->
-                </select>
-            </div>
+def fetch_extended_album_details(album_id, token):
+    """
+    Fetches comprehensive data for an album, including track details and
+    related artist metrics (followers, popularity).
+    """
+    base_url = "https://api.spotify.com/v1"
+    
+    # ----------------------------------------------------
+    # 1. Fetch Album Details and Tracks (One API Call)
+    # ----------------------------------------------------
+    print(f"Fetching Album details for ID: {album_id}")
+    album_url = f"{base_url}/albums/{album_id}"
+    album_data = get_spotify_data(album_url, token)
+    
+    if not album_data:
+        return {"error": "Could not retrieve album data."}
 
+    # Extract primary artist ID from the first artist in the list
+    try:
+        artist_id = album_data['artists'][0]['id']
+    except (IndexError, KeyError):
+        return {"error": "Album data is missing primary artist ID."}
 
-            <!-- 3. Album Type (Read-only) - Full Width -->
-            <div>
-                <label for="album-type-display" class="block text-sm font-medium text-gray-300">Album Type</label>
-                <input type="text" id="album-type-display" value="" readonly
-                       class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked">
-                <p class="text-xs text-gray-500 mt-1">Single status is a feature for the model.</p>
-            </div>
+    # Extract all required album/track details
+    tracks_list = []
+    for track in album_data.get('tracks', {}).get('items', []):
+        tracks_list.append({
+            "name": track.get('name'),
+            "duration_ms": track.get('duration_ms'),
+            "is_explicit": track.get('explicit'),
+            "track_number": track.get('track_number')
+        })
+
+    extended_details = {
+        "album_name": album_data.get('name'),
+        "album_type": album_data.get('album_type'), # e.g., 'album', 'single', 'compilation'
+        "release_date": album_data.get('release_date'),
+        "label": album_data.get('label'),
+        "total_tracks": album_data.get('total_tracks'),
+        "primary_artist_name": album_data['artists'][0]['name'],
+        "tracks": tracks_list
+    }
+
+    # ----------------------------------------------------
+    # 2. Fetch Artist Details (Second API Call)
+    # ----------------------------------------------------
+    print(f"Fetching Artist details for ID: {artist_id}")
+    artist_url = f"{base_url}/artists/{artist_id}"
+    artist_data = get_spotify_data(artist_url, token)
+    
+    if artist_data:
+        extended_details["artist_popularity"] = artist_data.get('popularity') # 0-100 score
+        extended_details["artist_followers"] = artist_data.get('followers', {}).get('total')
+        extended_details["artist_genres"] = artist_data.get('genres')
+    else:
+        extended_details["artist_info_error"] = "Could not retrieve artist data."
 
 
-            <!-- 4. Track Metadata: Followers & Artist Pop (2-Column Grid) -->
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Artist Followers (Read-only) -->
-                <div>
-                    <label for="artist-followers" class="block text-sm font-medium text-gray-300">Followers</label>
-                    <input type="text" id="artist-followers" value="" readonly
-                           class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked text-center">
-                </div>
+    return extended_details
 
-                <!-- Artist Popularity (Editable for Custom Track) -->
-                <div>
-                    <label for="artist-pop" class="block text-sm font-medium text-gray-300">Artist Popularity</label>
-                    <input type="number" id="artist-pop" min="0" max="100" value=""
-                           class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150 text-center">
-                </div>
-            </div>
+if __name__ == "__main__":
+    if MOCK_ACCESS_TOKEN == "YOUR_SPOTIFY_API_ACCESS_TOKEN_HERE":
+        print("!!! WARNING: Please replace MOCK_ACCESS_TOKEN with a valid token before running this script. !!!")
+        print("This script will run but will likely fail with a 401 Unauthorized error until a real token is provided.")
+    
+    result = fetch_extended_album_details(ALBUM_ID_TO_FETCH, MOCK_ACCESS_TOKEN)
+    
+    print("\n--- EXTENDED ALBUM AND ARTIST DATA ---")
+    print(json.dumps(result, indent=4))
 
-            <!-- 5. Track Duration (Minutes) - Full Width -->
-            <div>
-                <label for="duration-min" class="block text-sm font-medium text-gray-300">Track Duration (Minutes)</label>
-                <input type="number" id="duration-min" step="0.01" min="0.5" value=""
-                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
-            </div>
-            
-            <!-- 6. Explicit Status (Read-only) - Full Width -->
-            <div>
-                <label for="explicit-status" class="block text-sm font-medium text-gray-300">Explicit Status</label>
-                <input type="text" id="explicit-status" value="" readonly
-                       class="mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold">
-            </div>
-            
-        </div>
+# Function to convert milliseconds to mm:ss format for better readability
+def ms_to_min_sec(ms):
+    seconds = int((ms / 1000) % 60)
+    minutes = int((ms / (1000 * 60)) % 60)
+    return f"{minutes:02d}:{seconds:02d}"
 
-        <!-- Action Buttons (Predict and Reset) -->
-        <div class="grid grid-cols-3 gap-4">
-            <button onclick="handleReset()"
-                    class="col-span-1 py-3 mt-4 text-sm font-bold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-500 transition duration-300 ease-in-out transform hover:scale-[1.01]"
-                    id="reset-button">
-                Reset
-            </button>
-            <button onclick="handlePrediction()"
-                    class="col-span-2 py-3 mt-4 text-lg font-bold text-black bg-green-500 rounded-lg shadow-md hover:bg-green-400 transition duration-300 ease-in-out transform hover:scale-[1.01]"
-                    id="predict-button">
-                Predict Popularity
-            </button>
-        </div>
-
-        <!-- Prediction Output Display -->
-        <div class="pt-6 border-t border-gray-700 space-y-3">
-            <p class="text-center text-gray-300 font-medium">Predicted Popularity Score (0-100) for:</p>
-            <p id="track-artist-summary" class="text-center text-xl font-bold text-white">
-                ---
-            </p>
-            <div class="flex justify-center items-center">
-                <div id="prediction-output" 
-                     class="text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl">
-                    --
-                </div>
-            </div>
-            <p id="prediction-message" class="text-center text-lg font-semibold text-gray-400">Click "Predict Popularity" to calculate the score.</p>
-        </div>
-
-        <!-- ML Model Summary / Disclaimer -->
-        <div class="mt-6 p-4 text-xs bg-gray-800 rounded-lg text-gray-400">
-            <h3 class="font-bold text-gray-200 mb-1">Model Details (Simulated Logistic Regression)</h3>
-            <p>This demo uses a simplified model based on the following weights:</p>
-            <ul class="list-disc list-inside ml-2 mt-1 space-y-0.5">
-                <li><span class="font-mono text-green-300">Bias:</span> 35.0 (Base Popularity)</li>
-                <li><span class="font-mono text-green-300">Artist Popularity Weight:</span> +0.8 (Strong positive influence)</li>
-                <li><span class="font-mono text-green-300">Duration Weight:</span> -1.5 (Small penalty for non-standard duration)</li>
-                <li><span class="font-mono text-green-300">Single Status Weight:</span> +5.0 (Singles generally receive more promotional focus than album tracks)</li>
-            </ul>
-        </div>
-        
-    </div>
-
-    <script>
-        // --- HARDCODED SAMPLE DATA FOR PREVIEW ---
-        // Added track_popularity (actual score) to the data for display and better demo contrast.
-        const SAMPLE_TRACK_DATA = [
-            // Track 1: High Artist Pop, Single -> Capped at 100
-            { track_id: "1", track_name: "Hypnotic Vibe", track_popularity: "98", artist_name: "The Weeknd", artist_followers: 85000000, explicit: "FALSE", album_type: "single", track_duration_min: "3.25", artist_popularity: "95", artist_genres: "pop, r&b" },
-            // Track 2: High Artist Pop, Album Track -> Still high
-            { track_id: "2", track_name: "Deep Cut 4", track_popularity: "85", artist_name: "The Weeknd", artist_followers: 85000000, explicit: "TRUE", album_type: "album", track_duration_min: "5.1", artist_popularity: "95", artist_genres: "pop, r&b, synthpop" },
-            // Track 3: Medium Artist Pop, Album Track, Medium Duration -> Medium Pop
-            { track_id: "3", track_name: "Mellow Jam", track_popularity: "62", artist_name: "Lana Del Rey", artist_followers: 35000000, explicit: "FALSE", album_type: "album", track_duration_min: "4.5", artist_popularity: "88", artist_genres: "alternative r&b, pop" },
-            // Track 4: Medium Artist Pop, Album Track, Long Duration -> Lower Pop
-            { track_id: "4", track_name: "Indie Groove", track_popularity: "45", artist_name: "Tame Impala", artist_followers: 9000000, explicit: "FALSE", album_type: "album", track_duration_min: "6.0", artist_popularity: "80", artist_genres: "psychedelic rock, neo-psychedelia" },
-            // Track 5: High Artist Pop, Single, Short Duration -> Capped at 100
-            { track_id: "5", track_name: "Rage Beat", track_popularity: "95", artist_name: "Travis Scott", artist_followers: 60000000, explicit: "TRUE", album_type: "single", track_duration_min: "2.5", artist_popularity: "92", artist_genres: "hip hop, trap" },
-            // Track 6: High Artist Pop, Album Track -> High Pop
-            { track_id: "6", track_name: "Astro", track_popularity: "80", artist_name: "Travis Scott", artist_followers: 60000000, explicit: "TRUE", album_type: "album", track_duration_min: "4.2", artist_popularity: "92", artist_genres: "hip hop, trap" },
-            // Track 7: Medium Artist Pop, Single, Medium Duration -> High Pop
-            { track_id: "7", track_name: "Summer Anthem", track_popularity: "88", artist_name: "Lana Del Rey", artist_followers: 35000000, explicit: "FALSE", album_type: "single", track_duration_min: "3.8", artist_popularity: "88", artist_genres: "pop" },
-             // Track 8: Low Pop Track (Low Artist Pop, Album Track, Long Duration) -> Low Pop (to show the scale)
-            { track_id: "8", track_name: "Forgotten Ballad", track_popularity: "20", artist_name: "Lana Del Rey", artist_followers: 35000000, explicit: "FALSE", album_type: "album", track_duration_min: "7.1", artist_popularity: "40", artist_genres: "alternative r&b" },
-        ];
-        
-        // Define the pre-trained coefficients (weights) for the Linear Regression model
-        const MODEL_COEFFICIENTS = {
-            bias: 35.0,
-            artistPopWeight: 0.8,
-            durationWeight: -1.5,
-            singleStatusWeight: 5.0 
-        };
-
-        // DOM elements for inputs
-        const artistSelect = document.getElementById('artist-select');
-        const genreSelect = document.getElementById('genre-select');
-        const trackSelect = document.getElementById('track-select'); 
-        const artistFollowersInput = document.getElementById('artist-followers');
-        const explicitStatusInput = document.getElementById('explicit-status');
-        const albumTypeDisplay = document.getElementById('album-type-display');
-        const artistPopInput = document.getElementById('artist-pop');
-        const durationMinInput = document.getElementById('duration-min');
-        const summaryElement = document.getElementById('track-artist-summary');
-        
-        // DOM elements for output (needed for resetting)
-        const outputElement = document.getElementById('prediction-output');
-        const messageElement = document.getElementById('prediction-message');
-
-        // Initial default state
-        const DEFAULT_SELECTION = {
-            artist: 'Custom Artist',
-            genre: 'custom genre',
-            track: 'Custom Track', 
-            followers: 'N/A',
-            artist_popularity: 75,
-            duration_min: 3.0,
-            explicit: 'N/A',
-            album_type: 'single'
-        };
-
-        // Global map for quick lookups (Artist -> Genres, Features)
-        let ARTIST_METADATA = {};
-        let ALL_GENRES = new Set();
-        let ALL_ARTISTS = new Set();
-        let TRACK_MAP = {}; // Map to store tracks by ID for easy lookup
-
-        // --- Core Functions for Two-Way Filtering ---
-
-        /**
-         * Builds the metadata map for artists and extracts all unique genres.
-         */
-        function buildMetadata() {
-            ARTIST_METADATA = {};
-            ALL_GENRES.clear();
-            ALL_ARTISTS.clear();
-            TRACK_MAP = {};
-
-            SAMPLE_TRACK_DATA.forEach(track => {
-                const artist = track.artist_name;
-                ALL_ARTISTS.add(artist);
-                TRACK_MAP[track.track_id] = track;
-
-                // Initialize artist entry if it doesn't exist
-                if (!ARTIST_METADATA[artist]) {
-                    ARTIST_METADATA[artist] = {
-                        tracks: [],
-                        followers: parseInt(track.artist_followers),
-                        popularity: parseInt(track.artist_popularity)
-                    };
-                }
-
-                // Collect track data 
-                ARTIST_METADATA[artist].tracks.push(track);
-                
-                // Collect genres for filtering
-                track.artist_genres.split(',').map(g => g.trim()).forEach(g => {
-                    ALL_GENRES.add(g);
-                });
-            });
-        }
-
-        /**
-         * Handles when the Artist dropdown value changes.
-         * 1. Filters the Genre dropdown.
-         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
-         * 3. Loads the corresponding feature data (default/custom track).
-         */
-        function handleArtistChange() {
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
-            
-            // 1. Filter Genres based on selected Artist
-            filterGenreDropdown(selectedArtist);
-            
-            // If the previously selected genre is no longer available, reset the genre dropdown
-            if (!Array.from(genreSelect.options).some(option => option.value === selectedGenre)) {
-                genreSelect.selectedIndex = 0; // Select the first available genre or default
-            }
-
-            // 2. Filter Tracks based on the new combination
-            filterTrackDropdown(selectedArtist, genreSelect.value);
-
-            // 3. Load Features (NO prediction yet)
-            loadFeatures();
-        }
-
-        /**
-         * Handles when the Genre dropdown value changes.
-         * 1. Filters the Artist dropdown.
-         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
-         * 3. Loads the corresponding feature data (default/custom track).
-         */
-        function handleGenreChange() {
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
-
-            // 1. Filter Artists based on selected Genre
-            filterArtistDropdown(selectedGenre);
-            
-            // If the previously selected artist is no longer available, reset the artist dropdown
-            if (!Array.from(artistSelect.options).some(option => option.value === selectedArtist)) {
-                artistSelect.selectedIndex = 0; // Select the first available artist or default
-            }
-
-            // 2. Filter Tracks based on the new combination
-            filterTrackDropdown(artistSelect.value, selectedGenre);
-
-            // 3. Load Features (NO prediction yet)
-            loadFeatures();
-        }
-        
-        /**
-         * Handles when the Track dropdown value changes.
-         * 1. Loads the specific track's features.
-         * 2. Runs the prediction.
-         */
-        function handleTrackChange() {
-            // No need to re-filter Artist/Genre dropdowns, just load the specific track features
-            loadFeatures();
-        }
-
-        /**
-         * Populates the Artist dropdown, filtering by an optional genre.
-         */
-        function filterArtistDropdown(filterGenre = null) {
-            const previousArtist = artistSelect.value;
-            artistSelect.innerHTML = `<option value="${DEFAULT_SELECTION.artist}">${DEFAULT_SELECTION.artist}</option>`;
-            let filteredArtists = Array.from(ALL_ARTISTS);
-
-            if (filterGenre && filterGenre !== DEFAULT_SELECTION.genre) {
-                filteredArtists = filteredArtists.filter(artist => {
-                    return ARTIST_METADATA[artist].tracks.some(track => 
-                        track.artist_genres.split(',').map(g => g.trim()).includes(filterGenre)
-                    );
-                });
-            }
-
-            filteredArtists.sort().forEach(artist => {
-                const option = document.createElement('option');
-                option.value = artist;
-                option.textContent = artist;
-                artistSelect.appendChild(option);
-            });
-            // Re-select previous value if still available
-            if (Array.from(artistSelect.options).some(option => option.value === previousArtist)) {
-                artistSelect.value = previousArtist;
-            }
-        }
-        
-        /**
-         * Populates the Genre dropdown, filtering by an optional artist.
-         */
-        function filterGenreDropdown(filterArtist = null) {
-            const previousGenre = genreSelect.value;
-            genreSelect.innerHTML = `<option value="${DEFAULT_SELECTION.genre}">${DEFAULT_SELECTION.genre}</option>`;
-            let filteredGenres = Array.from(ALL_GENRES);
-
-            if (filterArtist && filterArtist !== DEFAULT_SELECTION.artist) {
-                const artistTracks = ARTIST_METADATA[filterArtist]?.tracks || [];
-                const genresForArtist = new Set();
-                artistTracks.forEach(track => {
-                    track.artist_genres.split(',').map(g => g.trim()).forEach(g => genresForArtist.add(g));
-                });
-                filteredGenres = Array.from(genresForArtist);
-            }
-
-            filteredGenres.sort().forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre;
-                option.textContent = genre;
-                genreSelect.appendChild(option);
-            });
-            // Re-select previous value if still available
-            if (Array.from(genreSelect.options).some(option => option.value === previousGenre)) {
-                genreSelect.value = previousGenre;
-            }
-        }
-
-        /**
-         * Populates the Track dropdown based on the selected artist and genre.
-         */
-        function filterTrackDropdown(artist, genre) {
-            trackSelect.innerHTML = `<option value="${DEFAULT_SELECTION.track}">Custom Track</option>`;
-
-            if (artist === DEFAULT_SELECTION.artist) {
-                // If Custom Artist, no tracks to show
-                return;
-            }
-
-            // Filter tracks by BOTH artist and genre
-            const filteredTracks = ARTIST_METADATA[artist]?.tracks.filter(track => {
-                const trackGenres = track.artist_genres.split(',').map(g => g.trim());
-                return genre === DEFAULT_SELECTION.genre || trackGenres.includes(genre);
-            }) || [];
-            
-            filteredTracks.sort((a, b) => a.track_name.localeCompare(b.track_name)).forEach(track => {
-                const option = document.createElement('option');
-                option.value = track.track_id; // Use ID for unique identification
-                // Display track name and its actual popularity
-                option.textContent = `${track.track_name} (Pop: ${track.track_popularity})`; 
-                trackSelect.appendChild(option);
-            });
-        }
-
-        // --- Feature Loading and UI Logic ---
-        
-        /**
-         * Cleans up and formats large follower numbers.
-         */
-        function formatFollowers(count) {
-            if (isNaN(count)) return 'N/A';
-            if (count >= 1000000) {
-                return (count / 1000000).toFixed(1) + 'M';
-            }
-            if (count >= 1000) {
-                return (count / 1000).toFixed(0) + 'K';
-            }
-            return count.toString();
-        }
-
-        /**
-         * Loads and displays the feature data based on the current selections.
-         */
-        function loadFeatures() {
-            const selectedTrackId = trackSelect.value;
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
-
-            let features = {};
-            let isCustomMode = false;
-
-            if (selectedTrackId === DEFAULT_SELECTION.track || selectedArtist === DEFAULT_SELECTION.artist) {
-                // Case 1: Custom Track / Default Selection (Editable Inputs)
-                isCustomMode = true;
-                features = DEFAULT_SELECTION;
-                summaryElement.textContent = `${DEFAULT_SELECTION.track} | ${selectedArtist} | ${selectedGenre}`;
-            } else {
-                // Case 2: Specific Track Selected (Read-Only Inputs)
-                const track = TRACK_MAP[selectedTrackId];
-                if (!track) {
-                    // Fallback if track data is somehow missing
-                    return; 
-                }
-                
-                features = {
-                    artist: track.artist_name,
-                    genre: selectedGenre, // We stick with the genre filter for display
-                    followers: formatFollowers(parseInt(track.artist_followers)),
-                    artist_popularity: parseInt(track.artist_popularity),
-                    duration_min: parseFloat(track.track_duration_min),
-                    explicit: track.explicit.toUpperCase() === 'TRUE' ? 'Explicit' : 'Clean',
-                    album_type: track.album_type
-                };
-
-                summaryElement.textContent = `${track.track_name} | ${features.artist} (${selectedGenre})`;
-            }
-
-            // Update UI fields
-            setFeatureLock(!isCustomMode); // Lock if a real track is selected
-            trackSelect.disabled = (selectedArtist === DEFAULT_SELECTION.artist);
-
-            // Display values
-            artistFollowersInput.value = features.followers;
-            albumTypeDisplay.value = features.album_type.charAt(0).toUpperCase() + features.album_type.slice(1);
-            
-            // Set input values (ensuring they are populated in custom mode too)
-            artistPopInput.value = features.artist_popularity; 
-            durationMinInput.value = features.duration_min.toFixed(2); 
-            
-            // Explicit status styling
-            const statusText = features.explicit;
-            const statusColor = statusText === 'Explicit' ? 'bg-red-900/50 text-red-300' : 
-                                statusText === 'Clean' ? 'bg-green-900/50 text-green-300' : 'bg-gray-700 text-gray-400';
-            explicitStatusInput.value = statusText;
-            explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold ${statusColor} input-locked`;
-
-            // --- Reset Prediction Output ---
-            outputElement.textContent = '--';
-            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl`;
-            messageElement.textContent = 'Click "Predict Popularity" to calculate the score.';
-            messageElement.className = 'text-center text-lg font-semibold text-gray-400';
-        }
-
-        /**
-         * Toggles the read-only state and styling for the numerical feature inputs.
-         */
-        function setFeatureLock(isLocked) {
-            // Only Artist Pop and Duration are editable in Custom mode
-            const editableInputs = [artistPopInput, durationMinInput];
-            editableInputs.forEach(input => {
-                input.readOnly = isLocked;
-                input.classList.toggle('input-locked', isLocked);
-                input.classList.toggle('bg-gray-700', !isLocked);
-                input.classList.toggle('text-gray-400', isLocked);
-                input.classList.toggle('text-white', !isLocked);
-                input.setAttribute('tabindex', isLocked ? -1 : 0);
-            });
-        }
-
-        /**
-         * Resets all inputs and filters to the initial default state.
-         */
-        function handleReset() {
-            // Reset Dropdowns
-            artistSelect.value = DEFAULT_SELECTION.artist;
-            genreSelect.value = DEFAULT_SELECTION.genre;
-            trackSelect.value = DEFAULT_SELECTION.track;
-            
-            // Re-run the filtering logic to reset the available options
-            handleArtistChange(); // This triggers the full cascade to reset features
-            
-            // Explicitly load features for the default state and clear prediction
-            loadFeatures(); 
-        }
-        
-        // --- Prediction Logic (Runs ONLY when button is clicked) ---
-
-        function predictPopularity(artistPop, durationMin, isSingle) {
-            const { bias, artistPopWeight, durationWeight, singleStatusWeight } = MODEL_COEFFICIENTS;
-
-            let prediction = bias + 
-                             (artistPop * artistPopWeight) + 
-                             (durationMin * durationWeight) + 
-                             (isSingle ? singleStatusWeight : 0);
-
-            prediction = Math.max(0, Math.min(100, prediction));
-            return prediction;
-        }
-
-        function handlePrediction() {
-            // Get current selected features from the input fields
-            const artistPop = parseFloat(artistPopInput.value);
-            const durationMin = parseFloat(durationMinInput.value);
-            const albumType = albumTypeDisplay.value.toLowerCase();
-            const isSingle = albumType === 'single';
-
-            const outputElement = document.getElementById('prediction-output');
-            const messageElement = document.getElementById('prediction-message');
-            
-            // --- Input Validation ---
-            if (isNaN(artistPop) || artistPop < 0 || artistPop > 100 || isNaN(durationMin) || durationMin <= 0) {
-                outputElement.textContent = 'Err';
-                outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-red-500 shadow-xl transition-all duration-500`;
-                messageElement.textContent = 'Please ensure Artist Popularity (0-100) and Duration (Min 0.5) are valid numbers.';
-                messageElement.className = 'text-center text-lg font-semibold text-red-500';
-                return;
-            }
-
-            // --- Run Prediction ---
-            const predictedScore = predictPopularity(artistPop, durationMin, isSingle);
-
-            // --- Update UI ---
-            const roundedScore = Math.round(predictedScore);
-            outputElement.textContent = roundedScore;
-            
-            let colorClass = 'border-gray-500';
-            let message = "A niche track, potentially a deep cut or older release.";
-
-            if (roundedScore >= 80) {
-                colorClass = 'border-green-500';
-                message = "🔥 Mega Hit Potential! High probability of trending.";
-            } else if (roundedScore >= 60) {
-                colorClass = 'border-yellow-500';
-                message = "⭐ Strong Performer. Likely to be included in popular playlists.";
-            } else if (roundedScore >= 40) {
-                colorClass = 'border-blue-500';
-                message = "📈 Moderate Success. Solid track for the artist's discography.";
-            } else {
-                colorClass = 'border-red-500';
-                message = "📉 Low Popularity. May be an album filler or highly experimental.";
-            }
-            
-            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 ${colorClass} shadow-xl transition-all duration-500`;
-            messageElement.textContent = message;
-            messageElement.className = 'text-center text-lg font-semibold ' + (roundedScore >= 80 ? 'text-green-400' : 'text-gray-400');
-        }
-
-        // --- Initialization ---
-
-        /**
-         * Initializes the application.
-         */
-        function initializeApp() {
-            buildMetadata();
-            // Initial population of all dropdowns with all options/defaults
-            filterArtistDropdown(null);
-            filterGenreDropdown(null);
-            filterTrackDropdown(DEFAULT_SELECTION.artist, DEFAULT_SELECTION.genre); 
-
-            // Select the default custom options initially
-            artistSelect.value = DEFAULT_SELECTION.artist;
-            genreSelect.value = DEFAULT_SELECTION.genre;
-            trackSelect.value = DEFAULT_SELECTION.track;
-            
-            // Load features for display, but DO NOT run initial prediction
-            loadFeatures();
-        }
-
-        // Initialize the app on page load
-        document.addEventListener('DOMContentLoaded', initializeApp);
-    </script>
-</body>
+# Example of how you would format the output for tracks:
+# print("\n--- Track List ---")
+# for track in result.get('tracks', []):
+#     duration_str = ms_to_min_sec(track['duration_ms'])
+#     explicit_status = "Explicit" if track['is_explicit'] else "Clean"
+#     print(f"Track {track['track_number']}. {track['name']} ({duration_str}) - {explicit_status}")
