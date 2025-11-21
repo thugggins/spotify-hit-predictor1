@@ -3,774 +3,339 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Popularity Predictor (ML Demo)</title>
-    <!-- Load Tailwind CSS from CDN for modern, responsive styling -->
+    <title>Spotify Album Data Fetcher</title>
+    <!-- Load Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom styles for a dark, Spotify-inspired theme */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap');
-        :root {
-            --spotify-green: #1DB954;
-            --dark-background: #0E0E0E;
-            --card-background: #181818;
-            --text-light: #FFFFFF;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--dark-background);
-        }
-        .predictor-card {
-            background-color: var(--card-background);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        /* Custom focus color */
-        input:focus, select:focus {
-            border-color: var(--spotify-green) !important;
-            box-shadow: 0 0 0 1px var(--spotify-green) !important;
-        }
-        /* Style for read-only/locked inputs */
-        .input-locked {
-            background-color: #282828; /* Darker background for locked state */
-            color: #A0A0A0; /* Grayed out text */
-            cursor: not-allowed;
-        }
-        /* Hide number input spinners */
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-        /* Styling for the new data catalog table */
-        #track-catalog-container {
-            max-height: 400px; /* Constrain height for scrolling */
-            overflow-y: auto;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        #track-catalog th {
-            position: sticky;
-            top: 0;
-            background-color: #000; /* Dark sticky header */
-            z-index: 10;
-        }
+        /* Custom font */
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-4 pt-10 pb-10">
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4 sm:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-green-400 mb-2">Spotify Album Analysis</h1>
+            <p class="text-gray-400">Fetch and display album and artist details using the Spotify API.</p>
+        </header>
 
-    <!-- Main Prediction Application Card -->
-    <div class="predictor-card w-full max-w-lg shadow-2xl rounded-xl p-6 md:p-10 space-y-6 mb-8">
-
-        <h1 class="text-3xl font-extrabold text-center text-white">
-            <span class="text-green-400">Spotify</span> Hit Predictor
-        </h1>
-        <p id="ready-message" class="text-center text-gray-400 text-sm">
-            Select an Artist, Genre, and optionally a Track for prediction.
-        </p>
-        
-        <!-- Input Form for Track Features -->
-        <div class="space-y-4">
-
-            <!-- 1. Artist and Genre Dropdowns (Primary Inputs) -->
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Artist Name -->
+        <!-- Configuration Section -->
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-white">Configuration</h2>
+            <div class="space-y-4">
                 <div>
-                    <label for="artist-select" class="block text-sm font-medium text-gray-300">Select Artist</label>
-                    <select id="artist-select" onchange="handleArtistChange()"
-                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                        <!-- Options populated by JS -->
-                    </select>
+                    <label for="tokenInput" class="block text-sm font-medium text-gray-400">Spotify Access Token (Required)</label>
+                    <input type="text" id="tokenInput" placeholder="YOUR_SPOTIFY_API_ACCESS_TOKEN_HERE" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-green-500 focus:border-green-500">
+                    <p class="text-xs text-red-400 mt-1">IMPORTANT: You must manually obtain a new, temporary Access Token from Spotify's API tools and paste it here.</p>
                 </div>
-                
-                <!-- Genre -->
                 <div>
-                    <label for="genre-select" class="block text-sm font-medium text-gray-300">Select Genre</label>
-                    <select id="genre-select" onchange="handleGenreChange()"
-                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                        <!-- Options populated by JS -->
-                    </select>
+                    <label for="albumIdInput" class="block text-sm font-medium text-gray-400">Album ID</label>
+                    <input type="text" id="albumIdInput" value="4aawyRNdmt39sgEaC2T70O" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:ring-green-500 focus:border-green-500">
+                    <p class="text-xs text-gray-500 mt-1">Example: "4aawyRNdmt39sgEaC2T70O" (Kendrick Lamar - DAMN.)</p>
                 </div>
             </div>
-            
-            <!-- 2. Track Selector -->
-            <div>
-                <label for="track-select" class="block text-sm font-medium text-gray-300">Select Track</label>
-                <select id="track-select" onchange="handleTrackChange()"
-                        class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                    <!-- Options populated by JS -->
-                </select>
-            </div>
-
-
-            <!-- 3. Album Type (Read-only) - Full Width -->
-            <div>
-                <label for="album-type-display" class="block text-sm font-medium text-gray-300">Album Type</label>
-                <input type="text" id="album-type-display" value="" readonly
-                       class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked">
-                <p class="text-xs text-gray-500 mt-1">Single status is a feature for the model.</p>
-            </div>
-
-
-            <!-- 4. Track Metadata: Followers & Artist Pop (2-Column Grid) -->
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Artist Followers (Read-only) -->
-                <div>
-                    <label for="artist-followers" class="block text-sm font-medium text-gray-300">Followers (M/K)</label>
-                    <input type="text" id="artist-followers" value="" readonly
-                           class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked text-center">
-                </div>
-
-                <!-- Artist Popularity (Editable for Custom Track) -->
-                <div>
-                    <label for="artist-pop" class="block text-sm font-medium text-gray-300">Artist Popularity (0-100)</label>
-                    <input type="number" id="artist-pop" min="0" max="100" value=""
-                           class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150 text-center">
-                </div>
-            </div>
-
-            <!-- 5. Track Duration (Minutes) - Full Width -->
-            <div>
-                <label for="duration-min" class="block text-sm font-medium text-gray-300">Track Duration (Minutes)</label>
-                <input type="number" id="duration-min" step="0.01" min="0.5" value=""
-                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
-            </div>
-            
-            <!-- 6. Explicit Status (Read-only) - Full Width -->
-            <div>
-                <label for="explicit-status" class="block text-sm font-medium text-gray-300">Explicit Status</label>
-                <input type="text" id="explicit-status" value="" readonly
-                       class="mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold">
-            </div>
-            
-        </div>
-
-        <!-- Action Buttons (Predict and Reset) -->
-        <div class="grid grid-cols-3 gap-4">
-            <button onclick="handleReset()"
-                    class="col-span-1 py-3 mt-4 text-sm font-bold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-500 transition duration-300 ease-in-out transform hover:scale-[1.01]"
-                    id="reset-button">
-                Reset
-            </button>
-            <button onclick="handlePrediction()"
-                    class="col-span-2 py-3 mt-4 text-lg font-bold text-black bg-green-500 rounded-lg shadow-md hover:bg-green-400 transition duration-300 ease-in-out transform hover:scale-[1.01]"
-                    id="predict-button">
-                Predict Popularity
+            <button id="fetchButton" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+                Fetch Album Data
             </button>
         </div>
 
-        <!-- Prediction Output Display -->
-        <div class="pt-6 border-t border-gray-700 space-y-3">
-            <p class="text-center text-gray-300 font-medium">Predicted Popularity Score (0-100) for:</p>
-            <p id="track-artist-summary" class="text-center text-xl font-bold text-white">
-                ---
-            </p>
-            <div class="flex justify-center items-center">
-                <div id="prediction-output" 
-                     class="text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl">
-                    --
-                </div>
+        <!-- Result Display Section -->
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-4 text-white">Results</h2>
+            <div id="loader" class="hidden text-center py-8">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-3"></div>
+                <p>Fetching data...</p>
             </div>
-            <p id="prediction-message" class="text-center text-lg font-semibold text-gray-400">Click "Predict Popularity" to calculate the score.</p>
-        </div>
+            <div id="resultOutput" class="space-y-4 text-sm">
+                <p class="text-gray-400" id="statusMessage">Enter your token and click 'Fetch Data' to begin.</p>
+            </div>
 
-        <!-- ML Model Summary / Disclaimer -->
-        <div class="mt-6 p-4 text-xs bg-gray-800 rounded-lg text-gray-400">
-            <h3 class="font-bold text-gray-200 mb-1">Model Details (Simulated Logistic Regression)</h3>
-            <p>This demo uses a simplified model based on the following weights:</p>
-            <ul class="list-disc list-inside ml-2 mt-1 space-y-0.5">
-                <li><span class="font-mono text-green-300">Bias:</span> 35.0 (Base Popularity)</li>
-                <li><span class="font-mono text-green-300">Artist Popularity Weight:</span> +0.8 (Strong positive influence)</li>
-                <li><span class="font-mono text-green-300">Duration Weight:</span> -1.5 (Small penalty for non-standard duration)</li>
-                <li><span class="font-mono text-green-300">Single Status Weight:</span> +5.0 (Singles generally receive more promotional focus than album tracks)</li>
-            </ul>
+            <!-- Error/Message Box -->
+            <div id="messageBox" class="hidden mt-4 p-4 border rounded-lg" role="alert"></div>
         </div>
-        
     </div>
 
-    <!-- --- COMPLETE TRACK DATA CATALOG SECTION --- -->
-    <div class="w-full max-w-4xl mt-12">
-        <h2 class="text-2xl font-bold text-white mb-4 text-center md:text-left">
-            Complete Track Data Catalog (0 Records)
-        </h2>
-        
-        <div id="track-catalog-container" class="bg-gray-800 shadow-inner">
-            <table class="min-w-full divide-y divide-gray-700 text-sm" id="track-catalog-table">
-                <thead class="bg-black text-xs uppercase tracking-wider">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-gray-300">Track Name</th>
-                        <th class="px-3 py-2 text-left text-gray-300">Artist</th>
-                        <th class="px-3 py-2 text-center text-gray-300">Pop</th>
-                        <th class="px-3 py-2 text-center text-gray-300">A.Pop</th>
-                        <th class="px-3 py-2 text-center text-gray-300 hidden sm:table-cell">Duration (Min)</th>
-                        <th class="px-3 py-2 text-center text-gray-300 hidden md:table-cell">Explicit</th>
-                        <th class="px-3 py-2 text-center text-gray-300 hidden md:table-cell">Type</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-700 text-gray-300" id="track-catalog-body">
-                    <!-- Rows will be dynamically populated here -->
-                </tbody>
-            </table>
-        </div>
-        <p class="text-xs text-gray-500 mt-2 text-center">
-            This table lists all data points embedded in the application's internal dataset.
-        </p>
-    </div>
-
-    <!-- --- JAVASCRIPT LOGIC --- -->
     <script>
-        // --- EXPANDED SAMPLE DATA SET (Contains all required fields for all tracks) ---
-        const SAMPLE_TRACK_DATA = [
-            // The Weeknd (High Pop, High Followers)
-            { track_id: "1", track_name: "Blinding Lights", track_popularity: "98", artist_name: "The Weeknd", artist_followers: 120000000, explicit: "FALSE", album_type: "single", track_duration_min: "3.20", artist_popularity: "95", artist_genres: "pop, r&b, synthpop" },
-            { track_id: "2", track_name: "Starboy", track_popularity: "92", artist_name: "The Weeknd", artist_followers: 120000000, explicit: "TRUE", album_type: "album", track_duration_min: "3.50", artist_popularity: "95", artist_genres: "r&b, pop" },
-            { track_id: "3", track_name: "Moth To A Flame", track_popularity: "88", artist_name: "The Weeknd", artist_followers: 120000000, explicit: "FALSE", album_type: "single", track_duration_min: "4.21", artist_popularity: "95", artist_genres: "electronic, dance pop" },
-            
-            // Dua Lipa (High Pop, Medium-High Followers)
-            { track_id: "4", track_name: "Don't Start Now", track_popularity: "94", artist_name: "Dua Lipa", artist_followers: 40000000, explicit: "FALSE", album_type: "single", track_duration_min: "3.03", artist_popularity: "90", artist_genres: "pop, dance pop" },
-            { track_id: "5", track_name: "Levitating", track_popularity: "91", artist_name: "Dua Lipa", artist_followers: 40000000, explicit: "FALSE", album_type: "album", track_duration_min: "3.23", artist_popularity: "90", artist_genres: "dance pop" },
-            { track_id: "6", track_name: "Future Nostalgia", track_popularity: "65", artist_name: "Dua Lipa", artist_followers: 40000000, explicit: "FALSE", album_type: "album", track_duration_min: "3.46", artist_popularity: "90", artist_genres: "pop" },
-
-            // Travis Scott (High Pop, Medium-High Followers)
-            { track_id: "7", track_name: "SICKO MODE", track_popularity: "87", artist_name: "Travis Scott", artist_followers: 65000000, explicit: "TRUE", album_type: "album", track_duration_min: "5.12", artist_popularity: "92", artist_genres: "hip hop, trap" },
-            { track_id: "8", track_name: "FE!N", track_popularity: "90", artist_name: "Travis Scott", artist_followers: 65000000, explicit: "TRUE", album_type: "album", track_duration_min: "3.11", artist_popularity: "92", artist_genres: "hip hop, trap" },
-            
-            // Tame Impala (Medium Pop, Medium Followers)
-            { track_id: "9", track_name: "The Less I Know The Better", track_popularity: "85", artist_name: "Tame Impala", artist_followers: 9000000, explicit: "FALSE", album_type: "album", track_duration_min: "3.36", artist_popularity: "80", artist_genres: "psychedelic rock, neo-psychedelia" },
-            { track_id: "10", track_name: "Borderline", track_popularity: "75", artist_name: "Tame Impala", artist_followers: 9000000, explicit: "FALSE", album_type: "single", track_duration_min: "3.57", artist_popularity: "80", artist_genres: "neo-psychedelia" },
-            { track_id: "11", track_name: "Glimmer", track_popularity: "48", artist_name: "Tame Impala", artist_followers: 9000000, explicit: "FALSE", album_type: "album", track_duration_min: "2.08", artist_popularity: "80", artist_genres: "psychedelic rock" },
-
-            // Lana Del Rey (Medium Pop, Medium Followers)
-            { track_id: "12", track_name: "Summertime Sadness", track_popularity: "82", artist_name: "Lana Del Rey", artist_followers: 35000000, explicit: "FALSE", album_type: "single", track_duration_min: "4.25", artist_popularity: "88", artist_genres: "pop, alternative rock" },
-            { track_id: "13", track_name: "A&W", track_popularity: "70", artist_name: "Lana Del Rey", artist_followers: 35000000, explicit: "TRUE", album_type: "album", track_duration_min: "7.13", artist_popularity: "88", artist_genres: "alternative rock" },
-            { track_id: "14", track_name: "Say Yes to Heaven", track_popularity: "78", artist_name: "Lana Del Rey", artist_followers: 35000000, explicit: "FALSE", album_type: "single", track_duration_min: "3.28", artist_popularity: "88", artist_genres: "pop" },
-
-            // Daft Punk (Legacy/Retired, Low Followers, High Pop)
-            { track_id: "15", track_name: "Get Lucky", track_popularity: "96", artist_name: "Daft Punk", artist_followers: 9000000, explicit: "FALSE", album_type: "album", track_duration_min: "4.08", artist_popularity: "75", artist_genres: "electronic, french house" },
-            { track_id: "16", track_name: "One More Time", track_popularity: "80", artist_name: "Daft Punk", artist_followers: 9000000, explicit: "FALSE", album_type: "album", track_duration_min: "5.20", artist_popularity: "75", artist_genres: "french house" },
-            
-            // JPEGMAFIA (Niche/Underground, Low Pop, Low Followers)
-            { track_id: "17", track_name: "BALD!", track_popularity: "55", artist_name: "JPEGMAFIA", artist_followers: 800000, explicit: "TRUE", album_type: "single", track_duration_min: "1.42", artist_popularity: "68", artist_genres: "experimental hip hop" },
-            { track_id: "18", track_name: "The Ghost-Pop Tape", track_popularity: "35", artist_name: "JPEGMAFIA", artist_followers: 800000, explicit: "TRUE", album_type: "album", track_duration_min: "3.40", artist_popularity: "68", artist_genres: "experimental hip hop, cloud rap" },
-
-            // Billie Eilish (High Pop, High Followers)
-            { track_id: "19", track_name: "bad guy", track_popularity: "95", artist_name: "Billie Eilish", artist_followers: 70000000, explicit: "FALSE", album_type: "album", track_duration_min: "3.14", artist_popularity: "93", artist_genres: "pop, alt-pop" },
-            { track_id: "20", track_name: "What Was I Made For?", track_popularity: "90", artist_name: "Billie Eilish", artist_followers: 70000000, explicit: "FALSE", album_type: "single", track_duration_min: "3.42", artist_popularity: "93", artist_genres: "pop" },
-            { track_id: "21", track_name: "NDA", track_popularity: "68", artist_name: "Billie Eilish", artist_followers: 70000000, explicit: "FALSE", album_type: "album", track_duration_min: "3.15", artist_popularity: "93", artist_genres: "alt-pop" },
-            
-            // Pop Punk Artist
-            { track_id: "24", track_name: "All The Small Things", track_popularity: "78", artist_name: "Blink-182", artist_followers: 12000000, explicit: "FALSE", album_type: "album", track_duration_min: "2.47", artist_popularity: "78", artist_genres: "pop punk, rock" },
-            { track_id: "25", track_name: "Edging", track_popularity: "75", artist_name: "Blink-182", artist_followers: 12000000, explicit: "TRUE", album_type: "single", track_duration_min: "2.30", artist_popularity: "78", artist_genres: "pop punk, rock" },
-
-            // Artist with missing/non-standard data (to demonstrate robustness)
-            { track_id: "26", track_name: "Mystery Track", track_popularity: "45", artist_name: "Unknown Legend", artist_followers: "unknown", explicit: "UNKNOWN", album_type: "single", track_duration_min: "3.00", artist_popularity: "60", artist_genres: "experimental, ambient" },
-        ];
-        
-        // Define the pre-trained coefficients (weights) for the Linear Regression model
-        const MODEL_COEFFICIENTS = {
-            bias: 35.0,
-            artistPopWeight: 0.8,
-            durationWeight: -1.5,
-            singleStatusWeight: 5.0 
-        };
-
-        // DOM elements for inputs
-        const artistSelect = document.getElementById('artist-select');
-        const genreSelect = document.getElementById('genre-select');
-        const trackSelect = document.getElementById('track-select'); 
-        const artistFollowersInput = document.getElementById('artist-followers');
-        const explicitStatusInput = document.getElementById('explicit-status');
-        const albumTypeDisplay = document.getElementById('album-type-display');
-        const artistPopInput = document.getElementById('artist-pop');
-        const durationMinInput = document.getElementById('duration-min');
-        const summaryElement = document.getElementById('track-artist-summary');
-        
-        // DOM elements for output & catalog
-        const outputElement = document.getElementById('prediction-output');
-        const messageElement = document.getElementById('prediction-message');
-        const catalogBody = document.getElementById('track-catalog-body');
-
-
-        // Initial default state
-        const DEFAULT_SELECTION = {
-            artist: 'Custom Artist',
-            genre: 'custom genre',
-            track: 'Custom Track', 
-            followers: 'N/A',
-            artist_popularity: 75,
-            duration_min: 3.0,
-            explicit: 'N/A',
-            album_type: 'single'
-        };
-
-        // Global map for quick lookups (Artist -> Genres, Features)
-        let ARTIST_METADATA = {};
-        let ALL_GENRES = new Set();
-        let ALL_ARTISTS = new Set();
-        let TRACK_MAP = {}; // Map to store tracks by ID for easy lookup
-
-        // --- Core Functions for Two-Way Filtering ---
+        // --- Utility Functions ---
 
         /**
-         * Builds the metadata map for artists and extracts all unique genres.
+         * Generic function to display a temporary message (error or success)
+         * @param {string} message 
+         * @param {boolean} isError 
          */
-        function buildMetadata() {
-            ARTIST_METADATA = {};
-            ALL_GENRES.clear();
-            ALL_ARTISTS.clear();
-            TRACK_MAP = {};
+        function displayMessage(message, isError = false) {
+            const box = document.getElementById('messageBox');
+            box.textContent = message;
+            box.classList.remove('hidden', 'bg-red-900', 'bg-green-900', 'border-red-500', 'border-green-500');
+            
+            if (isError) {
+                box.classList.add('bg-red-900', 'border-red-500', 'text-red-300');
+            } else {
+                box.classList.add('bg-green-900', 'border-green-500', 'text-green-300');
+            }
 
-            SAMPLE_TRACK_DATA.forEach(track => {
-                const artist = track.artist_name;
-                ALL_ARTISTS.add(artist);
-                TRACK_MAP[track.track_id] = track;
+            // Clear message after 5 seconds
+            setTimeout(() => {
+                box.classList.add('hidden');
+            }, 5000);
+        }
 
-                // Initialize artist entry if it doesn't exist
-                if (!ARTIST_METADATA[artist]) {
-                    // Use '0' or default values if 'artist_followers' or 'artist_popularity' is missing/unknown
-                    const followers = track.artist_followers === "unknown" ? 0 : parseInt(track.artist_followers) || 0;
-                    const popularity = track.artist_popularity === "unknown" ? 50 : parseInt(track.artist_popularity) || 50;
+        /**
+         * Converts milliseconds to mm:ss format.
+         * @param {number} ms 
+         * @returns {string}
+         */
+        function msToMinSec(ms) {
+            const seconds = Math.floor((ms / 1000) % 60);
+            const minutes = Math.floor((ms / (1000 * 60)) % 60);
+            return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        // --- API Fetch Logic ---
+
+        /**
+         * Generic function to make a GET request to the Spotify API with retry logic.
+         * @param {string} url 
+         * @param {string} token 
+         */
+        async function getSpotifyData(url, token) {
+            const headers = {
+                "Authorization": `Bearer ${token}`
+            };
+            const maxRetries = 3;
+
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, { headers });
                     
-                    ARTIST_METADATA[artist] = {
-                        tracks: [],
-                        followers: followers,
-                        popularity: popularity
-                    };
+                    if (response.ok) {
+                        return await response.json();
+                    }
+
+                    if (response.status === 401) {
+                        throw new Error("401 Unauthorized. Check your Access Token.");
+                    } else if (response.status === 429 && attempt < maxRetries - 1) {
+                        const waitTime = Math.pow(2, attempt);
+                        console.warn(`Rate limit hit (429). Retrying in ${waitTime} seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+                        continue; 
+                    } else {
+                        throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+                    }
+                } catch (error) {
+                    throw error; // Re-throw to be caught by the main fetch function
                 }
-
-                // Collect track data 
-                ARTIST_METADATA[artist].tracks.push(track);
-                
-                // Collect genres for filtering
-                track.artist_genres.split(',').map(g => g.trim()).forEach(g => {
-                    ALL_GENRES.add(g);
-                });
-            });
+            }
+            throw new Error("Failed to fetch data after multiple retries.");
         }
 
         /**
-         * Handles when the Artist dropdown value changes.
+         * Fetches extended album and artist details.
+         * @param {string} albumId 
+         * @param {string} token 
          */
-        function handleArtistChange() {
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
+        async function fetchExtendedAlbumDetails(albumId, token) {
+            const extendedDetails = {};
+
+            // 1. Fetch Album Data
+            const albumUrl = `https://api.spotify.com/v1/albums/${albumId}`;
+            const albumData = await getSpotifyData(albumUrl, token);
+
+            if (!albumData) {
+                extendedDetails.album_info_error = "Could not retrieve album data.";
+                return extendedDetails;
+            }
+
+            // Extract Album Details
+            extendedDetails.album_name = albumData.name;
+            extendedDetails.album_type = albumData.album_type;
+            extendedDetails.release_date = albumData.release_date;
+            extendedDetails.total_tracks = albumData.total_tracks;
+            extendedDetails.album_popularity = albumData.popularity;
+            extendedDetails.label = albumData.label;
+            extendedDetails.copyrights = albumData.copyrights.map(c => c.text);
+            extendedDetails.image_url = albumData.images[0]?.url || 'https://placehold.co/300x300/10b981/ffffff?text=No+Image';
+
+            // Process Tracks
+            extendedDetails.tracks = albumData.tracks.items.map(track => ({
+                name: track.name,
+                duration: msToMinSec(track.duration_ms),
+                track_number: track.track_number,
+                explicit: track.explicit,
+                preview_url: track.preview_url,
+                artists: track.artists.map(a => a.name).join(', ')
+            }));
             
-            filterGenreDropdown(selectedArtist);
-            
-            if (!Array.from(genreSelect.options).some(option => option.value === selectedGenre)) {
-                genreSelect.selectedIndex = 0; 
-            }
+            // 2. Fetch Artist Data (using the first artist from the album)
+            const primaryArtist = albumData.artists[0];
+            if (primaryArtist && primaryArtist.id) {
+                const artistUrl = `https://api.spotify.com/v1/artists/${primaryArtist.id}`;
+                const artistData = await getSpotifyData(artistUrl, token);
 
-            filterTrackDropdown(selectedArtist, genreSelect.value);
-            loadFeatures();
-        }
-
-        /**
-         * Handles when the Genre dropdown value changes.
-         */
-        function handleGenreChange() {
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
-
-            filterArtistDropdown(selectedGenre);
-            
-            if (!Array.from(artistSelect.options).some(option => option.value === selectedArtist)) {
-                artistSelect.selectedIndex = 0; 
-            }
-
-            filterTrackDropdown(artistSelect.value, selectedGenre);
-            loadFeatures();
-        }
-        
-        /**
-         * Handles when the Track dropdown value changes.
-         */
-        function handleTrackChange() {
-            loadFeatures();
-        }
-
-        /**
-         * Populates the Artist dropdown, filtering by an optional genre.
-         */
-        function filterArtistDropdown(filterGenre = null) {
-            const previousArtist = artistSelect.value;
-            artistSelect.innerHTML = `<option value="${DEFAULT_SELECTION.artist}">${DEFAULT_SELECTION.artist}</option>`;
-            let filteredArtists = Array.from(ALL_ARTISTS).filter(a => a !== DEFAULT_SELECTION.artist);
-
-            if (filterGenre && filterGenre !== DEFAULT_SELECTION.genre) {
-                filteredArtists = filteredArtists.filter(artist => {
-                    return ARTIST_METADATA[artist].tracks.some(track => 
-                        track.artist_genres.split(',').map(g => g.trim()).includes(filterGenre)
-                    );
-                });
-            }
-
-            filteredArtists.sort().forEach(artist => {
-                const option = document.createElement('option');
-                option.value = artist;
-                option.textContent = artist;
-                artistSelect.appendChild(option);
-            });
-            
-            // Re-select previous value if still available
-            if (Array.from(artistSelect.options).some(option => option.value === previousArtist)) {
-                artistSelect.value = previousArtist;
-            } else {
-                artistSelect.value = DEFAULT_SELECTION.artist; // Revert to default
-            }
-        }
-        
-        /**
-         * Populates the Genre dropdown, filtering by an optional artist.
-         */
-        function filterGenreDropdown(filterArtist = null) {
-            const previousGenre = genreSelect.value;
-            genreSelect.innerHTML = `<option value="${DEFAULT_SELECTION.genre}">${DEFAULT_SELECTION.genre}</option>`;
-            let filteredGenres = Array.from(ALL_GENRES);
-
-            if (filterArtist && filterArtist !== DEFAULT_SELECTION.artist) {
-                const artistTracks = ARTIST_METADATA[filterArtist]?.tracks || [];
-                const genresForArtist = new Set();
-                artistTracks.forEach(track => {
-                    track.artist_genres.split(',').map(g => g.trim()).forEach(g => genresForArtist.add(g));
-                });
-                filteredGenres = Array.from(genresForArtist);
-            }
-
-            filteredGenres.sort().forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre;
-                option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
-                genreSelect.appendChild(option);
-            });
-            
-            // Re-select previous value if still available
-            if (Array.from(genreSelect.options).some(option => option.value === previousGenre)) {
-                genreSelect.value = previousGenre;
-            } else {
-                genreSelect.value = DEFAULT_SELECTION.genre; // Revert to default
-            }
-        }
-
-        /**
-         * Populates the Track dropdown based on the selected artist and genre.
-         */
-        function filterTrackDropdown(artist, genre) {
-            trackSelect.innerHTML = `<option value="${DEFAULT_SELECTION.track}">Custom Track</option>`;
-
-            if (artist === DEFAULT_SELECTION.artist) {
-                // If Custom Artist, no tracks to show
-                return;
-            }
-
-            // Filter tracks by BOTH artist and genre
-            const filteredTracks = ARTIST_METADATA[artist]?.tracks.filter(track => {
-                const trackGenres = track.artist_genres.split(',').map(g => g.trim());
-                return genre === DEFAULT_SELECTION.genre || trackGenres.includes(genre);
-            }) || [];
-            
-            filteredTracks.sort((a, b) => a.track_name.localeCompare(b.track_name)).forEach(track => {
-                const option = document.createElement('option');
-                option.value = track.track_id; // Use ID for unique identification
-                // Display track name and its actual popularity
-                option.textContent = `${track.track_name} (Pop: ${track.track_popularity})`; 
-                trackSelect.appendChild(option);
-            });
-        }
-
-        // --- Feature Loading and UI Logic ---
-        
-        /**
-         * Cleans up and formats large follower numbers.
-         */
-        function formatFollowers(count) {
-            // Handle string inputs like "unknown" or empty strings
-            if (typeof count === 'string') {
-                const num = parseInt(count);
-                if (isNaN(num) || num === 0) return 'N/A';
-                count = num;
-            }
-
-            if (count >= 1000000) {
-                return (count / 1000000).toFixed(1) + 'M';
-            }
-            if (count >= 1000) {
-                return (count / 1000).toFixed(0) + 'K';
-            }
-            return count.toString();
-        }
-
-        /**
-         * Loads and displays the feature data based on the current selections.
-         */
-        function loadFeatures() {
-            const selectedTrackId = trackSelect.value;
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
-
-            let features = {};
-            let isCustomMode = false;
-
-            if (selectedTrackId === DEFAULT_SELECTION.track || selectedArtist === DEFAULT_SELECTION.artist) {
-                // Case 1: Custom Track / Default Selection (Editable Inputs)
-                isCustomMode = true;
-                
-                if (selectedArtist === DEFAULT_SELECTION.artist) {
-                    // Use absolute defaults if no artist is chosen
-                    features = DEFAULT_SELECTION;
+                if (artistData) {
+                    extendedDetails.artist_name = artistData.name;
+                    extendedDetails.artist_id = artistData.id;
+                    extendedDetails.artist_popularity = artistData.popularity; // 0-100 score
+                    extendedDetails.artist_followers = artistData.followers?.total;
+                    extendedDetails.artist_genres = artistData.genres;
+                    extendedDetails.artist_image_url = artistData.images[0]?.url || 'https://placehold.co/100x100/10b981/ffffff?text=Artist';
                 } else {
-                    // If a real artist is selected but "Custom Track" is chosen, pull artist-specific defaults
-                    const meta = ARTIST_METADATA[selectedArtist];
-                    features = {
-                        ...DEFAULT_SELECTION,
-                        followers: formatFollowers(meta.followers),
-                        artist_popularity: meta.popularity,
-                        artist: selectedArtist,
-                        genre: selectedGenre
-                    };
+                    extendedDetails.artist_info_error = "Could not retrieve artist data.";
                 }
-                
-                // Summary text for custom track
-                summaryElement.textContent = `${DEFAULT_SELECTION.track} | ${features.artist} | ${selectedGenre.toUpperCase()}`;
-            } else {
-                // Case 2: Specific Track Selected (Read-Only Inputs)
-                const track = TRACK_MAP[selectedTrackId];
-                if (!track) {
-                    console.error("Track not found for ID:", selectedTrackId);
-                    return; 
-                }
-                
-                // Clean and format all incoming string data
-                const isExplicit = track.explicit.toUpperCase() === 'TRUE' ? 'Explicit' : 
-                                   (track.explicit.toUpperCase() === 'FALSE' ? 'Clean' : 
-                                    (track.explicit.toUpperCase() === 'UNKNOWN' ? 'Unknown' : 'N/A'));
-
-                const trackDuration = parseFloat(track.track_duration_min) || DEFAULT_SELECTION.duration_min;
-                const artistPop = parseInt(track.artist_popularity) || DEFAULT_SELECTION.artist_popularity;
-                const artistFollowers = ARTIST_METADATA[track.artist_name].followers;
-
-                features = {
-                    artist: track.artist_name,
-                    genre: selectedGenre, 
-                    followers: formatFollowers(artistFollowers),
-                    artist_popularity: artistPop,
-                    duration_min: trackDuration,
-                    explicit: isExplicit,
-                    album_type: track.album_type || 'unknown'
-                };
-
-                // Summary text for known track
-                summaryElement.textContent = `${track.track_name} | ${features.artist} (${selectedGenre.toUpperCase()})`;
             }
-
-            // Update UI fields and lock state
-            setFeatureLock(!isCustomMode); // Lock if a real track is selected
-            trackSelect.disabled = (selectedArtist === DEFAULT_SELECTION.artist);
-
-            // Display values
-            artistFollowersInput.value = features.followers;
-            albumTypeDisplay.value = features.album_type.charAt(0).toUpperCase() + features.album_type.slice(1);
             
-            // Set input values (ensuring they are populated in custom mode too)
-            artistPopInput.value = features.artist_popularity; 
-            durationMinInput.value = features.duration_min.toFixed(2); 
-            
-            // Explicit status styling
-            const statusText = features.explicit;
-            let statusColor = 'bg-gray-700 text-gray-400';
-            if (statusText === 'Explicit') {
-                statusColor = 'bg-red-900/50 text-red-300';
-            } else if (statusText === 'Clean') {
-                statusColor = 'bg-green-900/50 text-green-300';
-            }
-            explicitStatusInput.value = statusText;
-            explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold ${statusColor} input-locked`;
-
-            // --- Reset Prediction Output ---
-            outputElement.textContent = '--';
-            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl`;
-            messageElement.textContent = 'Click "Predict Popularity" to calculate the score.';
-            messageElement.className = 'text-center text-lg font-semibold text-gray-400';
+            return extendedDetails;
         }
 
-        /**
-         * Toggles the read-only state and styling for the numerical feature inputs.
-         */
-        function setFeatureLock(isLocked) {
-            const editableInputs = [artistPopInput, durationMinInput];
-            editableInputs.forEach(input => {
-                input.readOnly = isLocked;
-                input.classList.toggle('input-locked', isLocked);
-                input.classList.toggle('bg-gray-700', !isLocked);
-                input.classList.toggle('text-gray-400', isLocked);
-                input.classList.toggle('text-white', !isLocked);
-                input.setAttribute('tabindex', isLocked ? -1 : 0);
+        // --- Rendering and Event Handling ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const fetchButton = document.getElementById('fetchButton');
+            const tokenInput = document.getElementById('tokenInput');
+            const albumIdInput = document.getElementById('albumIdInput');
+            const resultOutput = document.getElementById('resultOutput');
+            const loader = document.getElementById('loader');
+            const statusMessage = document.getElementById('statusMessage');
+
+            fetchButton.addEventListener('click', async () => {
+                const token = tokenInput.value.trim();
+                const albumId = albumIdInput.value.trim();
+                
+                // 1. Validation
+                if (!token || token.toUpperCase() === "YOUR_SPOTIFY_API_ACCESS_TOKEN_HERE") {
+                    displayMessage("Please enter a valid Spotify Access Token.", true);
+                    return;
+                }
+                if (!albumId) {
+                    displayMessage("Please enter an Album ID.", true);
+                    return;
+                }
+
+                // 2. UI State: Start Loading
+                resultOutput.innerHTML = '';
+                statusMessage.textContent = '';
+                loader.classList.remove('hidden');
+                fetchButton.disabled = true;
+
+                try {
+                    // 3. Fetch Data
+                    const result = await fetchExtendedAlbumDetails(albumId, token);
+
+                    // 4. Render Results
+                    if (Object.keys(result).length > 0) {
+                        renderResults(result, resultOutput);
+                    } else {
+                        statusMessage.textContent = "No data returned. Check the console for errors.";
+                    }
+                    displayMessage("Data successfully fetched!", false);
+
+                } catch (error) {
+                    console.error("Fetch failed:", error);
+                    statusMessage.textContent = `Error: ${error.message}. Please verify your Access Token and Album ID.`;
+                    displayMessage(`An error occurred: ${error.message}`, true);
+                } finally {
+                    // 5. UI State: Stop Loading
+                    loader.classList.add('hidden');
+                    fetchButton.disabled = false;
+                }
             });
-        }
 
-        /**
-         * Resets all inputs and filters to the initial default state.
-         */
-        function handleReset() {
-            // Reset Dropdowns
-            artistSelect.value = DEFAULT_SELECTION.artist;
-            genreSelect.value = DEFAULT_SELECTION.genre;
-            trackSelect.value = DEFAULT_SELECTION.track;
-            
-            // Re-run the filtering logic to reset the available options
-            filterArtistDropdown(null);
-            filterGenreDropdown(null);
-            filterTrackDropdown(DEFAULT_SELECTION.artist, DEFAULT_SELECTION.genre); 
-            
-            // Explicitly load features for the default state and clear prediction
-            loadFeatures(); 
-        }
-        
-        // --- Prediction Logic (Runs ONLY when button is clicked) ---
+            /**
+             * Renders the fetched data into the result container.
+             * @param {object} data 
+             * @param {HTMLElement} container 
+             */
+            function renderResults(data, container) {
+                container.innerHTML = ''; // Clear previous content
 
-        function predictPopularity(artistPop, durationMin, isSingle) {
-            // The formula simulates a simple linear regression model:
-            // Popularity = Bias + (ArtistPop * Weight_AP) + (Duration * Weight_D) + (Single * Weight_S)
-            const { bias, artistPopWeight, durationWeight, singleStatusWeight } = MODEL_COEFFICIENTS;
+                const cardClasses = "bg-gray-700 p-4 rounded-xl shadow-inner border border-gray-600";
+                const labelClasses = "font-medium text-green-400";
+                const valueClasses = "text-gray-200";
 
-            let prediction = bias + 
-                             (artistPop * artistPopWeight) + 
-                             (durationMin * durationWeight) + 
-                             (isSingle ? singleStatusWeight : 0);
-
-            // Cap and floor the score to stay within the 0-100 range
-            prediction = Math.max(0, Math.min(100, prediction));
-            return prediction;
-        }
-
-        function handlePrediction() {
-            // Get current selected features from the input fields
-            const artistPop = parseFloat(artistPopInput.value);
-            const durationMin = parseFloat(durationMinInput.value);
-            const albumType = albumTypeDisplay.value.toLowerCase();
-            const isSingle = albumType === 'single';
-
-            const outputElement = document.getElementById('prediction-output');
-            const messageElement = document.getElementById('prediction-message');
-            
-            // --- Input Validation ---
-            if (isNaN(artistPop) || artistPop < 0 || artistPop > 100 || isNaN(durationMin) || durationMin <= 0) {
-                outputElement.textContent = 'Err';
-                outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-red-500 shadow-xl transition-all duration-500`;
-                messageElement.textContent = 'Please ensure Artist Popularity (0-100) and Duration (Min 0.5) are valid numbers.';
-                messageElement.className = 'text-center text-lg font-semibold text-red-500';
-                return;
-            }
-
-            // --- Run Prediction ---
-            const predictedScore = predictPopularity(artistPop, durationMin, isSingle);
-
-            // --- Update UI ---
-            const roundedScore = Math.round(predictedScore);
-            outputElement.textContent = roundedScore;
-            
-            let colorClass = 'border-gray-500';
-            let message = "A niche track, potentially a deep cut or older release.";
-
-            if (roundedScore >= 85) {
-                colorClass = 'border-green-500';
-                message = "🔥 Mega Hit Potential! High probability of trending.";
-            } else if (roundedScore >= 70) {
-                colorClass = 'border-yellow-500';
-                message = "⭐ Strong Performer. Likely to be included in popular playlists.";
-            } else if (roundedScore >= 50) {
-                colorClass = 'border-blue-500';
-                message = "📈 Moderate Success. Solid track for the artist's discography.";
-            } else {
-                colorClass = 'border-red-500';
-                message = "📉 Low Popularity. May be an album filler or highly experimental.";
-            }
-            
-            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 ${colorClass} shadow-xl transition-all duration-500`;
-            messageElement.textContent = message;
-            messageElement.className = 'text-center text-lg font-semibold ' + (roundedScore >= 85 ? 'text-green-400' : 'text-gray-400');
-        }
-
-
-        // --- CATALOG DISPLAY FUNCTION ---
-
-        function displayTrackCatalog() {
-            catalogBody.innerHTML = ''; // Clear previous entries
-            document.querySelector('.w-full.max-w-4xl h2').textContent = `Complete Track Data Catalog (${SAMPLE_TRACK_DATA.length} Records)`;
-
-            SAMPLE_TRACK_DATA.forEach(track => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-700 transition duration-150';
-
-                // Helper to get formatted data, defaulting to 'unknown' or 'N/A' if empty/missing
-                const getData = (key, formatter = x => x) => {
-                    const value = track[key];
-                    if (value === undefined || value === null || value === "") return 'N/A';
-                    return formatter(value);
-                };
-
-                // Track Name and Artist are always visible
-                row.innerHTML = `
-                    <td class="px-3 py-2 font-medium text-white max-w-[150px] truncate" title="${track.track_name}">${track.track_name}</td>
-                    <td class="px-3 py-2 text-gray-400">${track.artist_name}</td>
-                    
-                    <!-- Track Popularity (Pop) -->
-                    <td class="px-3 py-2 text-center font-bold" style="color: ${parseInt(track.track_popularity) > 85 ? '#10B981' : (parseInt(track.track_popularity) > 65 ? '#FBBF24' : '#9CA3AF')}">
-                        ${getData('track_popularity')}
-                    </td>
-                    
-                    <!-- Artist Popularity (A.Pop) -->
-                    <td class="px-3 py-2 text-center text-gray-400">${getData('artist_popularity')}</td>
-
-                    <!-- Duration (Min) - Hidden on smallest screens -->
-                    <td class="px-3 py-2 text-center hidden sm:table-cell">${getData('track_duration_min')}</td>
-                    
-                    <!-- Explicit - Hidden on smaller screens -->
-                    <td class="px-3 py-2 text-center hidden md:table-cell text-xs font-semibold" style="color: ${getData('explicit').toUpperCase() === 'TRUE' ? '#F87171' : (getData('explicit').toUpperCase() === 'FALSE' ? '#4ADE80' : '#A0A0A0')}">
-                        ${getData('explicit').charAt(0)}
-                    </td>
-
-                    <!-- Album Type - Hidden on smaller screens -->
-                    <td class="px-3 py-2 text-center hidden md:table-cell text-xs capitalize">
-                        ${getData('album_type')}
-                    </td>
+                // --- Album Summary Card ---
+                const albumCard = document.createElement('div');
+                albumCard.className = `flex flex-col md:flex-row gap-6 ${cardClasses} mb-6`;
+                
+                // Album Image
+                albumCard.innerHTML += `
+                    <div class="flex-shrink-0">
+                        <img src="${data.image_url}" alt="Album Art" class="w-full h-auto md:w-48 md:h-48 rounded-lg object-cover shadow-xl">
+                    </div>
                 `;
-                catalogBody.appendChild(row);
-            });
-        }
 
+                // Album Details
+                let albumDetails = `
+                    <div class="flex-grow">
+                        <h3 class="text-3xl font-bold mb-2 text-white">${data.album_name}</h3>
+                        <p class="text-xl text-gray-400 mb-4">${data.artist_name || 'N/A'}</p>
+                        
+                        <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+                            <div><span class="${labelClasses}">Type:</span> <span class="${valueClasses}">${data.album_type}</span></div>
+                            <div><span class="${labelClasses}">Release Date:</span> <span class="${valueClasses}">${data.release_date}</span></div>
+                            <div><span class="${labelClasses}">Total Tracks:</span> <span class="${valueClasses}">${data.total_tracks}</span></div>
+                            <div><span class="${labelClasses}">Popularity Score:</span> <span class="${valueClasses}">${data.album_popularity || 'N/A'} / 100</span></div>
+                            <div class="col-span-2"><span class="${labelClasses}">Label:</span> <span class="${valueClasses}">${data.label}</span></div>
+                        </div>
+                        <div class="mt-4 text-xs text-gray-500 italic">${data.copyrights.join('; ')}</div>
+                    </div>
+                `;
+                albumCard.innerHTML += albumDetails;
+                container.appendChild(albumCard);
 
-        // --- Initialization ---
+                // --- Artist Details Card ---
+                const artistCard = document.createElement('div');
+                artistCard.className = cardClasses + ' mb-6';
+                artistCard.innerHTML = `
+                    <h3 class="text-2xl font-semibold mb-3 text-white flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Artist Details: ${data.artist_name || 'N/A'}
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                        <div><span class="${labelClasses}">Followers:</span> <span class="${valueClasses}">${data.artist_followers ? data.artist_followers.toLocaleString() : 'N/A'}</span></div>
+                        <div><span class="${labelClasses}">Popularity:</span> <span class="${valueClasses}">${data.artist_popularity || 'N/A'} / 100</span></div>
+                        <div class="sm:col-span-3"><span class="${labelClasses}">Genres:</span> <span class="${valueClasses}">${data.artist_genres ? data.artist_genres.join(', ') : 'N/A'}</span></div>
+                        ${data.artist_info_error ? `<div class="col-span-3 text-red-400">${data.artist_info_error}</div>` : ''}
+                    </div>
+                `;
+                container.appendChild(artistCard);
 
-        /**
-         * Initializes the application.
-         */
-        function initializeApp() {
-            buildMetadata();
-            
-            // Add 'Custom Artist' to the top of the artist set manually for proper sorting display
-            ALL_ARTISTS.add(DEFAULT_SELECTION.artist);
-
-            // Initial population of all dropdowns with all options/defaults
-            filterArtistDropdown(null);
-            filterGenreDropdown(null);
-            filterTrackDropdown(DEFAULT_SELECTION.artist, DEFAULT_SELECTION.genre); 
-
-            // Select the default custom options initially
-            artistSelect.value = DEFAULT_SELECTION.artist;
-            genreSelect.value = DEFAULT_SELECTION.genre;
-            trackSelect.value = DEFAULT_SELECTION.track;
-            
-            // Load features for display, but DO NOT run initial prediction
-            loadFeatures();
-            
-            // Display the full catalog list
-            displayTrackCatalog();
-        }
-
-        // Initialize the app on page load
-        document.addEventListener('DOMContentLoaded', initializeApp);
+                // --- Track List ---
+                const tracksContainer = document.createElement('div');
+                tracksContainer.className = cardClasses;
+                tracksContainer.innerHTML = `
+                    <h3 class="text-2xl font-semibold mb-4 text-white flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v14M9 19c-3.866 0-7 3.134-7 7s3.134 7 7 7h12c3.866 0 7-3.134 7-7v-14M9 19V6l12-3v14M9 19c-3.866 0-7 3.134-7 7s3.134 7 7 7h12c3.866 0 7-3.134 7-7v-14" />
+                        </svg>
+                        Track List (${data.tracks.length} Songs)
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-600">
+                            <thead>
+                                <tr class="text-gray-400 uppercase text-xs font-semibold tracking-wider">
+                                    <th class="px-3 py-2 text-left">#</th>
+                                    <th class="px-3 py-2 text-left">Title</th>
+                                    <th class="px-3 py-2 text-left">Artist(s)</th>
+                                    <th class="px-3 py-2 text-right">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-700">
+                                ${data.tracks.map((track, index) => `
+                                    <tr class="hover:bg-gray-700 transition duration-150">
+                                        <td class="px-3 py-2 whitespace-nowrap text-gray-400">${track.track_number}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-white font-medium">${track.name} ${track.explicit ? '<span class="text-red-400 ml-1">(E)</span>' : ''}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-gray-300">${track.artists}</td>
+                                        <td class="px-3 py-2 whitespace-nowrap text-right text-gray-400">${track.duration}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                container.appendChild(tracksContainer);
+            }
+        });
     </script>
 </body>
 </html>
