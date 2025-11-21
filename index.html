@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Popularity Predictor (ML Demo)</title>
+    <!-- Load Tailwind CSS from CDN for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a dark, Spotify-inspired theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap');
+        :root {
+            --spotify-green: #1DB954;
+            --dark-background: #121212;
+            --card-background: #1F1F1F;
+            --text-light: #FFFFFF;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-background);
+        }
+        .predictor-card {
+            background-color: var(--card-background);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Custom focus color */
+        input:focus {
+            border-color: var(--spotify-green) !important;
+            box-shadow: 0 0 0 1px var(--spotify-green) !important;
+        }
+        select:focus {
+            border-color: var(--spotify-green) !important;
+            box-shadow: 0 0 0 1px var(--spotify-green) !important;
+        }
+        /* Style for read-only inputs */
+        .input-locked {
+            background-color: #303030; /* Darker background for locked state */
+            color: #A0A0A0; /* Grayed out text */
+            cursor: not-allowed;
+            pointer-events: none; /* Disable mouse events on the field */
+        }
+        /* Hide number input spinners */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Prediction Application Card -->
+    <div class="predictor-card w-full max-w-lg shadow-2xl rounded-xl p-6 md:p-10 space-y-6">
+
+        <h1 class="text-3xl font-extrabold text-center text-white">
+            <span class="text-green-400">Spotify</span> Hit Predictor
+        </h1>
+        <p class="text-center text-gray-400 text-sm">
+            Select a track to see its prediction.
+        </p>
+        
+        <!-- Input Form for Track Features -->
+        <div class="space-y-4">
+
+            <!-- Feature 0: Track Name (Dropdown) -->
+            <div>
+                <label for="track-select" class="block text-sm font-medium text-gray-300">Select Track</label>
+                <select id="track-select" onchange="loadTrackFeatures()"
+                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                    <!-- Options populated by JavaScript -->
+                </select>
+            </div>
+
+            <!-- Track Metadata: Artist Name & Explicit Status -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Artist Name (Read-only/Editable based on selection) -->
+                <div>
+                    <label for="artist-name" class="block text-sm font-medium text-gray-300">Artist Name</label>
+                    <input type="text" id="artist-name" value=""
+                           class="mt-1 w-full p-3 bg-gray-700 text-gray-400 rounded-lg border border-gray-600 cursor-not-allowed">
+                </div>
+
+                <!-- Explicit Status (New Field - Read-only) -->
+                <div>
+                    <label for="explicit-status" class="block text-sm font-medium text-gray-300">Explicit Status</label>
+                    <input type="text" id="explicit-status" value="" readonly
+                           class="mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold">
+                </div>
+            </div>
+            
+            <!-- Feature 1: Artist Popularity -->
+            <div>
+                <label for="artist-pop" class="block text-sm font-medium text-gray-300">Artist Popularity (0-100)</label>
+                <input type="number" id="artist-pop" min="0" max="100" value=""
+                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
+                <p class="text-xs text-gray-500 mt-1">Represents the artist's overall success on Spotify.</p>
+            </div>
+
+            <!-- Feature 2: Track Duration (Minutes) -->
+            <div>
+                <label for="duration-min" class="block text-sm font-medium text-gray-300">Track Duration (Minutes)</label>
+                <input type="number" id="duration-min" step="0.01" min="0.5" value=""
+                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
+                <p class="text-xs text-gray-500 mt-1">e.g., 3 minutes 30 seconds = 3.5. Longer or shorter tracks can be outliers.</p>
+            </div>
+            
+            <!-- Feature 3: Album Total Tracks -->
+            <div>
+                <label for="album-tracks" class="block text-sm font-medium text-gray-300">Album/Release Track Count</label>
+                <input type="number" id="album-tracks" min="1" max="50" value=""
+                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
+                <p class="text-xs text-gray-500 mt-1">Number of tracks in the release (1 for a single, 10-20 for an album).</p>
+            </div>
+        </div>
+
+        <!-- Prediction Button (Can be used after manual edits) -->
+        <button onclick="handlePrediction()"
+                class="w-full py-3 mt-4 text-lg font-bold text-black bg-green-500 rounded-lg shadow-md hover:bg-green-400 transition duration-300 ease-in-out transform hover:scale-[1.01]">
+            Predict Popularity
+        </button>
+
+        <!-- Prediction Output Display -->
+        <div class="pt-6 border-t border-gray-700 space-y-3">
+            <p class="text-center text-gray-300 font-medium">Predicted Popularity Score (0-100) for:</p>
+            <p id="track-artist-summary" class="text-center text-xl font-bold text-white">
+                ---
+            </p>
+            <div class="flex justify-center items-center">
+                <div id="prediction-output" 
+                     class="text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-green-500 shadow-xl">
+                    --
+                </div>
+            </div>
+            <p id="prediction-message" class="text-center text-lg font-semibold text-green-400"></p>
+        </div>
+
+        <!-- ML Model Summary / Disclaimer -->
+        <div class="mt-6 p-4 text-xs bg-gray-800 rounded-lg text-gray-400">
+            <h3 class="font-bold text-gray-200 mb-1">Model Details (Simulated Linear Regression)</h3>
+            <p>This is a pre-trained model for demonstration purposes. It uses the following weights based on general music industry trends:</p>
+            <ul class="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                <li><span class="font-mono text-green-300">Bias:</span> 40.0 (Base Popularity)</li>
+                <li><span class="font-mono text-green-300">Artist Popularity Weight:</span> +0.75 (Strong positive influence)</li>
+                <li><span class="font-mono text-green-300">Duration Weight:</span> -2.5 (Slightly penalizes very short or very long tracks)</li>
+                <li><span class="font-mono text-green-300">Album Tracks Weight:</span> -1.2 (Assumes singles/EPs have more focus than deep album cuts)</li>
+            </ul>
+        </div>
+        
+    </div>
+
+    <script>
+        // --- HARDCODED SAMPLE DATA ---
+        // This data is parsed from the 'spotify_data clean.csv' file you provided.
+        // NOTE: The 'isExplicit' field has been added (TRUE/FALSE)
+        const TRACK_DATA = [
+            { id: 1, track: "Trippy Mane (ft. Project Pat)", artist: "Diplo", artistPop: 77, durationMin: 1.55, albumTracks: 9, isExplicit: true },
+            { id: 2, track: "OMG!", artist: "Yelawolf", artistPop: 64, durationMin: 3.07, albumTracks: 1, isExplicit: true },
+            { id: 3, track: "Hard 2 Find", artist: "Riff Raff", artistPop: 48, durationMin: 2.55, albumTracks: 1, isExplicit: true },
+            { id: 4, track: "Misirlou", artist: "Dick Dale", artistPop: 41, durationMin: 2.26, albumTracks: 19, isExplicit: false },
+            { id: 5, track: "Johnny B. Goode", artist: "Chuck Berry", artistPop: 63, durationMin: 2.69, albumTracks: 12, isExplicit: false },
+            { id: 6, track: "Saddle Tramp", artist: "Marty Robbins", artistPop: 61, durationMin: 2.05, albumTracks: 15, isExplicit: false },
+            { id: 7, track: "Big Iron", artist: "Marty Robbins", artistPop: 60, durationMin: 3.92, albumTracks: 15, isExplicit: false },
+        ];
+
+
+        // Define the pre-trained coefficients (weights) for the Linear Regression model
+        const MODEL_COEFFICIENTS = {
+            bias: 40.0,
+            artistPopWeight: 0.75,
+            durationWeight: -2.5,
+            albumTracksWeight: -1.2
+            // Note: isExplicit is not included in the simple ML model calculation for this demo
+        };
+
+        // DOM elements for inputs
+        const artistNameInput = document.getElementById('artist-name');
+        const explicitStatusInput = document.getElementById('explicit-status'); // New element
+        const artistPopInput = document.getElementById('artist-pop');
+        const durationMinInput = document.getElementById('duration-min');
+        const albumTracksInput = document.getElementById('album-tracks');
+        // Inputs that are controlled by the lock status (numeric features + artist name)
+        const controllableInputs = [artistNameInput, artistPopInput, durationMinInput, albumTracksInput];
+
+
+        /**
+         * The core function that implements the machine learning prediction logic.
+         */
+        function predictPopularity(artistPop, durationMin, albumTracks) {
+            const { bias, artistPopWeight, durationWeight, albumTracksWeight } = MODEL_COEFFICIENTS;
+
+            // Simple Linear Regression Formula:
+            let prediction = bias + 
+                             (artistPop * artistPopWeight) + 
+                             (durationMin * durationWeight) + 
+                             (albumTracks * albumTracksWeight);
+
+            // Clamp the result between 0 and 100, as popularity scores are capped.
+            prediction = Math.max(0, Math.min(100, prediction));
+
+            return prediction;
+        }
+
+        /**
+         * Toggles the read-only state and styling for the numerical feature inputs.
+         */
+        function setFeatureLock(isLocked) {
+            // Lock/Unlock artist name and numerical inputs
+            controllableInputs.forEach(input => {
+                input.readOnly = isLocked;
+                input.classList.toggle('input-locked', isLocked);
+                input.classList.toggle('bg-gray-700', !isLocked);
+                input.classList.toggle('text-gray-400', isLocked);
+                input.classList.toggle('text-white', !isLocked);
+            });
+            
+            // Explicit status input is always display-only, but we update its style
+            explicitStatusInput.classList.toggle('input-locked', isLocked);
+        }
+
+        /**
+         * Updates the numerical feature inputs and triggers prediction based on the selected track.
+         */
+        function loadTrackFeatures() {
+            const trackSelect = document.getElementById('track-select');
+            const selectedTrackId = parseInt(trackSelect.value, 10);
+            
+            const selectedTrack = TRACK_DATA.find(track => track.id === selectedTrackId);
+            
+            if (selectedTrack) {
+                // Case 1: A specific track from the dataset is selected
+                artistNameInput.value = selectedTrack.artist;
+                artistPopInput.value = selectedTrack.artistPop;
+                durationMinInput.value = selectedTrack.durationMin;
+                albumTracksInput.value = selectedTrack.albumTracks;
+                
+                // Set the Explicit Status display
+                const statusText = selectedTrack.isExplicit ? 'Explicit' : 'Clean';
+                const statusColor = selectedTrack.isExplicit ? 'bg-red-900/50 text-red-300' : 'bg-green-900/50 text-green-300';
+                
+                explicitStatusInput.value = statusText;
+                explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold ${statusColor}`;
+
+                setFeatureLock(true); // Lock features when using dataset value
+                
+                // Immediately run prediction after loading features
+                handlePrediction();
+
+            } else {
+                // Case 2: Manual Input is selected (id=0)
+                artistNameInput.value = 'Custom Artist';
+                artistPopInput.value = '70';
+                durationMinInput.value = '3.5';
+                albumTracksInput.value = '12';
+                
+                // Clear and reset the Explicit Status display for manual mode
+                explicitStatusInput.value = 'N/A';
+                explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold bg-gray-700 text-gray-400`;
+                
+                setFeatureLock(false); // Unlock features for manual editing
+
+                // Update summary for manual track
+                document.getElementById('track-artist-summary').textContent = `Custom Track by Custom Artist`;
+                // Run prediction for the default manual values
+                handlePrediction();
+            }
+        }
+
+        /**
+         * Handles user interaction, gathers inputs, performs validation, and displays the prediction.
+         */
+        function handlePrediction() {
+            const trackSelect = document.getElementById('track-select');
+            const isManualInput = parseInt(trackSelect.value, 10) === 0;
+
+            // Get names: Artist name comes from the input field (editable or locked).
+            let artistName = artistNameInput.value.trim() || 'Unknown Artist';
+            let trackName;
+
+            if (!isManualInput) {
+                // If not manual, pull the track name directly from the option text (which is now only the track name)
+                trackName = trackSelect.options[trackSelect.selectedIndex].text.trim() || 'Untitled Track';
+            } else {
+                // If manual, use the custom track name placeholder
+                trackName = 'Custom Track';
+                // artistName is already read from artistNameInput
+            }
+
+
+            // Get numerical input values
+            const artistPop = parseFloat(artistPopInput.value);
+            const durationMin = parseFloat(durationMinInput.value);
+            const albumTracks = parseInt(albumTracksInput.value, 10);
+
+            // Get output elements
+            const outputElement = document.getElementById('prediction-output');
+            const messageElement = document.getElementById('prediction-message');
+            const summaryElement = document.getElementById('track-artist-summary');
+            
+            // Update summary immediately
+            summaryElement.textContent = `${trackName} by ${artistName}`;
+
+            // --- Basic Input Validation ---
+            if (isNaN(artistPop) || artistPop < 0 || artistPop > 100 ||
+                isNaN(durationMin) || durationMin < 0 || 
+                isNaN(albumTracks) || albumTracks < 1) {
+                
+                outputElement.textContent = 'Err';
+                messageElement.textContent = 'Please enter valid numerical values for all features.';
+                messageElement.className = 'text-center text-lg font-semibold text-red-500';
+                return;
+            }
+
+            // --- Run Prediction ---
+            const predictedScore = predictPopularity(artistPop, durationMin, albumTracks);
+
+            // --- Update UI ---
+            const roundedScore = Math.round(predictedScore);
+            outputElement.textContent = roundedScore;
+            
+            // Determine display style and message based on the score
+            let colorClass = 'border-gray-500';
+            let message = "A niche track, potentially a deep cut or older release.";
+
+            if (roundedScore >= 80) {
+                colorClass = 'border-green-500';
+                message = "🔥 Mega Hit Potential! High probability of trending.";
+            } else if (roundedScore >= 60) {
+                colorClass = 'border-yellow-500';
+                message = "⭐ Strong Performer. Likely to be included in popular playlists.";
+            } else if (roundedScore >= 40) {
+                colorClass = 'border-blue-500';
+                message = "📈 Moderate Success. Solid track for the artist's discography.";
+            } else {
+                colorClass = 'border-red-500';
+                message = "📉 Low Popularity. May be an album filler or highly experimental.";
+            }
+            
+            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 ${colorClass} shadow-xl transition-all duration-500`;
+            messageElement.textContent = message;
+            messageElement.className = 'text-center text-lg font-semibold ' + (roundedScore >= 80 ? 'text-green-400' : 'text-gray-400');
+        }
+
+        /**
+         * Initializes the track selection dropdown with data and sets the initial prediction.
+         */
+        function initializeApp() {
+            const trackSelect = document.getElementById('track-select');
+            
+            // 1. Add Manual Input option
+            const manualOption = document.createElement('option');
+            manualOption.value = "0"; // Use 0 to signify manual input
+            manualOption.textContent = "--- Manual Input / Custom Track ---";
+            trackSelect.appendChild(manualOption);
+
+            // 2. Add tracks from hardcoded data
+            TRACK_DATA.forEach(track => {
+                const option = document.createElement('option');
+                option.value = track.id;
+                option.textContent = track.track; 
+                trackSelect.appendChild(option);
+            });
+
+            // Set the first track as default and load features
+            trackSelect.value = TRACK_DATA[1].id; // Changed to select track 1 (the second item in the array)
+            loadTrackFeatures();
+        }
+
+        // Initialize the app on page load
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+</body>
+</html>
