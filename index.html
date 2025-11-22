@@ -1,182 +1,589 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Data Filter - Full Structure</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { margin-bottom: 5px; }
-        .controls { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; }
-        .controls label, .controls select { font-size: 16px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
-        th { background-color: #f2f2f2; cursor: pointer; }
-        button { padding: 10px 15px; background-color: #f44336; color: white; border: none; cursor: pointer; border-radius: 4px; }
-        button:hover { background-color: #d32f2f; }
-        .select-group { display: flex; flex-direction: column; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Popularity Predictor (ML Demo)</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a dark, Spotify-inspired theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap');
+        :root {
+            --spotify-green: #1DB954;
+            --dark-background: #121212;
+            --card-background: #1F1F1F;
+            --text-light: #FFFFFF;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-background);
+        }
+        .predictor-card {
+            background-color: var(--card-background);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Custom focus color */
+        input:focus, select:focus {
+            border-color: var(--spotify-green) !important;
+            box-shadow: 0 0 0 1px var(--spotify-green) !important;
+        }
+        /* Style for read-only/locked inputs */
+        .input-locked {
+            background-color: #303030; /* Darker background for locked state */
+            color: #A0A0A0; /* Grayed out text */
+            cursor: not-allowed;
+        }
+        /* Hide number input spinners */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <h1>Spotify Data Explorer (Full Structure)</h1>
+        <div class="predictor-card w-full max-w-lg shadow-2xl rounded-xl p-6 md:p-10 space-y-6">
 
-    <div class="controls">
-        <div class="select-group">
-            <label for="artist-filter">Filter by Artist:</label>
-            <select id="artist-filter" onchange="applyFilters()">
-                <option value="">All Artists</option>
-                </select>
-        </div>
-        <div class="select-group">
-            <label for="genre-filter">Filter by Genre (Includes):</label>
-            <select id="genre-filter" onchange="applyFilters()">
-                <option value="">All Genres</option>
-                </select>
-        </div>
-        
-        <button onclick="resetFilters()">Reset All Filters</button>
-    </div>
+        <h1 class="text-3xl font-extrabold text-center text-white">
+            <span class="text-green-400">Spotify</span> Hit Predictor
+        </h1>
+        <p id="ready-message" class="text-center text-gray-400 text-sm">
+            Select an Artist, Genre, and optionally a Track for prediction.
+        </p>
+        
+                <div class="space-y-4">
 
-    <p>Showing <span id="record-count">0</span> Tracks.</p>
+                        <div class="grid grid-cols-2 gap-4">
+                                <div>
+                    <label for="artist-select" class="block text-sm font-medium text-gray-300">Select Artist</label>
+                    <select id="artist-select" onchange="handleArtistChange()"
+                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                                            </select>
+                </div>
+                
+                                <div>
+                    <label for="genre-select" class="block text-sm font-medium text-gray-300">Select Genre</label>
+                    <select id="genre-select" onchange="handleGenreChange()"
+                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                                            </select>
+                </div>
+            </div>
+            
+                        <div>
+                <label for="track-select" class="block text-sm font-medium text-gray-300">Select Track</label>
+                <select id="track-select" onchange="handleTrackChange()"
+                        class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                                    </select>
+            </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Track Name</th>
-                <th>Artist Name</th>
-                <th>Track ID</th>
-                <th>Track Pop.</th>
-                <th>Artist Pop.</th>
-                <th>Explicit</th>
-                <th>Album Type</th>
-                <th>Duration (min)</th>
-                <th>Artist Followers</th>
-                <th>All Genres</th>
-            </tr>
-        </thead>
-        <tbody id="data-table-body">
-            </tbody>
-    </table>
 
-    <script>
-        // 1. EMBED YOUR FULL DATA HERE
-        // NOTE: This snippet is truncated for brevity. You must paste your full JSON array here 
-        // starting with 'const spotifyData = [' and ending with '];'
-        const spotifyData = [{"track_id":"3EJS5LyekDim1Tf5rBFmZl","track_name":"Trippy Mane (ft. Project Pat)","track_popularity":0,"artist_name":"Diplo","artist_followers":2812821,"explicit":"TRUE","album_type":"album","track_duration_min":1.55,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"1oQW6G2ZiwMuHqlPpP27DB","track_name":"OMG!","track_popularity":0,"artist_name":"Yelawolf","artist_followers":2363438,"explicit":"TRUE","album_type":"single","track_duration_min":3.07,"artist_popularity":64,"artist_genres":"country hip hop, southern hip hop"},{"track_id":"7mdkjzoIYlf1rx9EtBpGmU","track_name":"Hard 2 Find","track_popularity":4,"artist_name":"Riff Raff","artist_followers":193302,"explicit":"TRUE","album_type":"single","track_duration_min":2.55,"artist_popularity":48,"artist_genres":null},{"track_id":"67rW0Zl7oB3qEpD5YWWE5w","track_name":"Still Get Like That (ft. Project Pat & Starrah)","track_popularity":30,"artist_name":"Diplo","artist_followers":2813710,"explicit":"TRUE","album_type":"album","track_duration_min":1.69,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"15xptTfRBrjsppW0INUZjf","track_name":"ride me like a harley","track_popularity":0,"artist_name":"Rumelis","artist_followers":8682,"explicit":"TRUE","album_type":"single","track_duration_min":2.39,"artist_popularity":48,"artist_genres":"dark r&b"},{"track_id":"4ccpCcZYseq8VrPMK1EDs0","track_name":"BLEED","track_popularity":2,"artist_name":"Minzie","artist_followers":7218,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":46,"artist_genres":"dark r&b"},{"track_id":"3QoQ3HqXTAjgEl9LbNMbYp","track_name":"Te Procuro na Cidade","track_popularity":20,"artist_name":"AZERDK","artist_followers":1657,"explicit":"FALSE","album_type":"single","track_duration_min":4.12,"artist_popularity":30,"artist_genres":null},{"track_id":"1YEZbdT417SfolPQzaoHs2","track_name":"come closer","track_popularity":27,"artist_name":"Rumelis","artist_followers":8802,"explicit":"FALSE","album_type":"single","track_duration_min":2.53,"artist_popularity":49,"artist_genres":"dark r&b"},{"track_id":"4pZ949nFW5SurwzE0TSe7I","track_name":"Cupido Vagabundo","track_popularity":16,"artist_name":"Toni dos Anjos","artist_followers":475,"explicit":"FALSE","album_type":"single","track_duration_min":2.92,"artist_popularity":6,"artist_genres":null},{"track_id":"0L0LgwFZ7UtBnRNQvSBty6","track_name":"LET\u2019S GO!","track_popularity":33,"artist_name":"PsychoYP","artist_followers":154802,"explicit":"TRUE","album_type":"single","track_duration_min":2.4,"artist_popularity":48,"artist_genres":"nigerian drill, alt\u00e9, afro adura, afrobeats, afrobeat, afroswing"}];
-        // ... PASTE THE REST OF YOUR JSON DATA HERE ...
-        // Note: The total number of records processed is 8981.
+                        <div>
+                <label for="album-type-display" class="block text-sm font-medium text-gray-300">Album Type</label>
+                <input type="text" id="album-type-display" value="" readonly
+                       class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked">
+                <p class="text-xs text-gray-500 mt-1">Single status is a feature for the model.</p>
+            </div>
 
-        let availableArtists = new Set();
-        let availableGenres = new Set();
-        const tableBody = document.getElementById('data-table-body');
-        const artistFilter = document.getElementById('artist-filter');
-        const genreFilter = document.getElementById('genre-filter');
-        const recordCount = document.getElementById('record-count');
 
-        // 2. INITIALIZE FILTERS AND TABLE
-        function initializeData() {
-            // Extract unique artists and genres for the filter lists
-            spotifyData.forEach(track => {
-                availableArtists.add(track.artist_name);
-                
-                // Handle multiple genres per track (comma-separated list)
-                if (track.artist_genres) {
-                    track.artist_genres.split(', ').forEach(genre => {
-                        // Clean up the genre string before adding
-                        if (genre.trim() !== "") {
-                            availableGenres.add(genre.trim());
-                        }
-                    });
-                }
-            });
+                        <div class="grid grid-cols-2 gap-4">
+                                <div>
+                    <label for="artist-followers" class="block text-sm font-medium text-gray-300">Followers</label>
+                    <input type="text" id="artist-followers" value="" readonly
+                           class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked text-center">
+                </div>
 
-            // Populate the dropdowns
-            populateFilter(artistFilter, Array.from(availableArtists).sort());
-            populateFilter(genreFilter, Array.from(availableGenres).sort());
+                                <div>
+                    <label for="artist-pop" class="block text-sm font-medium text-gray-300">Artist Popularity</label>
+                    <input type="number" id="artist-pop" min="0" max="100" value=""
+                           class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150 text-center">
+                </div>
+            </div>
 
-            // Render the initial table with all data
-            renderTable(spotifyData);
-        }
+                        <div>
+                <label for="duration-min" class="block text-sm font-medium text-gray-300">Track Duration (Minutes)</label>
+                <input type="number" id="duration-min" step="0.01" min="0.5" value=""
+                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
+            </div>
+            
+                        <div>
+                <label for="explicit-status" class="block text-sm font-medium text-gray-300">Explicit Status</label>
+                <input type="text" id="explicit-status" value="" readonly
+                       class="mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold">
+            </div>
+            
+        </div>
 
-        function populateFilter(selectElement, optionsArray) {
-            optionsArray.forEach(optionText => {
-                if (optionText && optionText.length > 0) {
-                    const option = document.createElement('option');
-                    option.value = optionText;
-                    option.textContent = optionText;
-                    selectElement.appendChild(option);
-                }
-            });
-        }
+                <div class="grid grid-cols-3 gap-4">
+            <button onclick="handleReset()"
+                    class="col-span-1 py-3 mt-4 text-sm font-bold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-500 transition duration-300 ease-in-out transform hover:scale-[1.01]"
+                    id="reset-button">
+                Reset
+            </button>
+            <button onclick="handlePrediction()"
+                    class="col-span-2 py-3 mt-4 text-lg font-bold text-black bg-green-500 rounded-lg shadow-md hover:bg-green-400 transition duration-300 ease-in-out transform hover:scale-[1.01]"
+                    id="predict-button">
+                Predict Popularity
+            </button>
+        </div>
 
-        // 3. FILTERING LOGIC
-        function applyFilters() {
-            const selectedArtist = artistFilter.value;
-            const selectedGenre = genreFilter.value;
-            
-            // Start with the full dataset
-            let filteredData = spotifyData;
+                <div class="pt-6 border-t border-gray-700 space-y-3">
+            <p class="text-center text-gray-300 font-medium">Predicted Popularity Score (0-100) for:</p>
+            <p id="track-artist-summary" class="text-center text-xl font-bold text-white">
+                ---
+            </p>
+            <div class="flex justify-center items-center">
+                <div id="prediction-output" 
+                     class="text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl">
+                    --
+                </div>
+            </div>
+            <p id="prediction-message" class="text-center text-lg font-semibold text-gray-400">Click "Predict Popularity" to calculate the score.</p>
+        </div>
 
-            // Apply Artist Filter (Exact Match)
-            if (selectedArtist) {
-                filteredData = filteredData.filter(track => track.artist_name === selectedArtist);
-            }
+                <div class="mt-6 p-4 text-xs bg-gray-800 rounded-lg text-gray-400">
+            <h3 class="font-bold text-gray-200 mb-1">Model Details (Simulated Logistic Regression)</h3>
+            <p>This demo uses a simplified model based on the following weights:</p>
+            <ul class="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                <li><span class="font-mono text-green-300">Bias:</span> 35.0 (Base Popularity)</li>
+                <li><span class="font-mono text-green-300">Artist Popularity Weight:</span> +0.8 (Strong positive influence)</li>
+                <li><span class="font-mono text-green-300">Duration Weight:</span> -1.5 (Small penalty for non-standard duration)</li>
+                <li><span class="font-mono text-green-300">Single Status Weight:</span> +5.0 (Singles generally receive more promotional focus than album tracks)</li>
+            </ul>
+        </div>
+        
+    </div>
 
-            // Apply Genre Filter (Substring Match to handle multiple genres)
-            if (selectedGenre) {
-                filteredData = filteredData.filter(track => 
-                    // Check if the track's genre string contains the selected genre
-                    // Note: Uses null-safe access and includes for multi-genre tracks
-                    track.artist_genres && track.artist_genres.includes(selectedGenre)
-                );
-            }
+    <script>
+        // --- DATA LOADED FROM ATTACHED CSV ---
+        // Added track_popularity (actual score) to the data for display and better demo contrast.
+        const SAMPLE_TRACK_DATA = [{"track_id":"3EJS5LyekDim1Tf5rBFmZl","track_name":"Trippy Mane (ft. Project Pat)","track_popularity":0,"artist_name":"Diplo","artist_followers":2812821,"explicit":"TRUE","album_type":"album","track_duration_min":1.55,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"1oQW6G2ZiwMuHqlPpP27DB","track_name":"OMG!","track_popularity":0,"artist_name":"Yelawolf","artist_followers":2363438,"explicit":"TRUE","album_type":"single","track_duration_min":3.07,"artist_popularity":64,"artist_genres":"country hip hop, southern hip hop"},{"track_id":"7mdkjzoIYlf1rx9EtBpGmU","track_name":"Hard 2 Find","track_popularity":4,"artist_name":"Riff Raff","artist_followers":193302,"explicit":"TRUE","album_type":"single","track_duration_min":2.55,"artist_popularity":48,"artist_genres":null},{"track_id":"67rW0Zl7oB3qEpD5YWWE5w","track_name":"Still Get Like That (ft. Project Pat & Starrah)","track_popularity":30,"artist_name":"Diplo","artist_followers":2813710,"explicit":"TRUE","album_type":"album","track_duration_min":1.69,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"15xptTfRBrjsppW0INUZjf","track_name":"ride me like a harley","track_popularity":0,"artist_name":"Rumelis","artist_followers":8682,"explicit":"TRUE","album_type":"single","track_duration_min":2.39,"artist_popularity":48,"artist_genres":"dark r&b"},{"track_id":"4ccpCcZYseq8VrPMK1EDs0","track_name":"BLEED","track_popularity":2,"artist_name":"Minzie","artist_followers":7218,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":46,"artist_genres":"dark r&b"},{"track_id":"3QoQ3HqXTAjgEl9LbNMbYp","track_name":"Te Procuro na Cidade","track_popularity":20,"artist_name":"AZERDK","artist_followers":1657,"explicit":"FALSE","album_type":"single","track_duration_min":4.12,"artist_popularity":30,"artist_genres":null},{"track_id":"1YEZbdT417SfolPQzaoHs2","track_name":"come closer","track_popularity":27,"artist_name":"Rumelis","artist_followers":8802,"explicit":"FALSE","album_type":"single","track_duration_min":2.53,"artist_popularity":49,"artist_genres":"dark r&b"},{"track_id":"4pZ949nFW5SurwzE0TSe7I","track_name":"Cupido Vagabundo","track_popularity":16,"artist_name":"Toni dos Anjos","artist_followers":475,"explicit":"FALSE","album_type":"single","track_duration_min":2.92,"artist_popularity":6,"artist_genres":null},{"track_id":"0L0LgwFZ7UtBnRNQvSBty6","track_name":"LET\u2019S GO!","track_popularity":33,"artist_name":"PsychoYP","artist_followers":154802,"explicit":"TRUE","album_type":"single","track_duration_min":2.4,"artist_popularity":48,"artist_genres":"nigerian drill, alt\u00e9, afro adura, afrobeats, afrobeat, afroswing"},{"track_id":"5mfAZwEr4jAVDnSY0HHuyH","track_name":"Stray","track_popularity":30,"artist_name":"What Matters The Most","artist_followers":814,"explicit":"FALSE","album_type":"single","track_duration_min":2.49,"artist_popularity":25,"artist_genres":null},{"track_id":"4V1Sh9Y2z6e8HpzNOet5rC","track_name":"PAPARAZZI ARRIVE - English Ver.","track_popularity":48,"artist_name":"A2O","artist_followers":13826,"explicit":"FALSE","album_type":"album","track_duration_min":2.89,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"0NZKfcua68wuZePhjp8N2I","track_name":"Root of all Evil","track_popularity":65,"artist_name":"Daniel Caesar","artist_followers":11137714,"explicit":"FALSE","album_type":"album","track_duration_min":4.41,"artist_popularity":85,"artist_genres":null},{"track_id":"6zFWxD9hkOPAIlgWAGyQGQ","track_name":"Let\u2019s Go!!","track_popularity":0,"artist_name":"Ovi Jozi","artist_followers":3567,"explicit":"TRUE","album_type":"single","track_duration_min":2.05,"artist_popularity":17,"artist_genres":null},{"track_id":"66F6YyfnWy6cNc6bd3zl2C","track_name":"MELODY - CHENYU & SHIJIE & QUCHANG","track_popularity":27,"artist_name":"A2O","artist_followers":13590,"explicit":"FALSE","album_type":"album","track_duration_min":4.25,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"22c6Yop5YVEAhw8UG6O1W1","track_name":"My Muse","track_popularity":67,"artist_name":"Leon Thomas","artist_followers":735818,"explicit":"TRUE","album_type":"single","track_duration_min":2.75,"artist_popularity":74,"artist_genres":null},{"track_id":"0SoYN9bRGPj7qV6loQKCTO","track_name":"A Real Good Bad One","track_popularity":31,"artist_name":"Joe Hermes","artist_followers":1518,"explicit":"FALSE","album_type":"single","track_duration_min":2.73,"artist_popularity":23,"artist_genres":null},{"track_id":"19A7srqQSXoW14muGyiHjg","track_name":"BOSS - English Ver.","track_popularity":33,"artist_name":"A2O","artist_followers":13826,"explicit":"FALSE","album_type":"album","track_duration_min":2.92,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"0XQQpq855N5rnUsFBXo2ml","track_name":"Bridges","track_popularity":11,"artist_name":"Scarlett Butler","artist_followers":364,"explicit":"FALSE","album_type":"single","track_duration_min":2.91,"artist_popularity":3,"artist_genres":null},{"track_id":"0nBPI5KxKOeOtr24sdGpE6","track_name":"Can't Go Back","track_popularity":30,"artist_name":"LEROCQUE","artist_followers":13770,"explicit":"FALSE","album_type":"single","track_duration_min":2.43,"artist_popularity":23,"artist_genres":null},{"track_id":"2aMZEJZwWouRzOw2aSfKV9","track_name":"Deeply Still","track_popularity":35,"artist_name":"Xander Ward","artist_followers":729,"explicit":"FALSE","album_type":"single","track_duration_min":2.91,"artist_popularity":35,"artist_genres":null},{"track_id":"2zzjpwG8wu3skr08m7rM6e","track_name":"Eggshell Tap Dancer","track_popularity":52,"artist_name":"The All-American Rejects","artist_followers":3134186,"explicit":"FALSE","album_type":"single","track_duration_min":3.78,"artist_popularity":67,"artist_genres":"pop punk, emo"},{"track_id":"2MbsC60IxeyJNVRRgeqH4w","track_name":"Eyes on You","track_popularity":22,"artist_name":"Smith & Liddle","artist_followers":543,"explicit":"FALSE","album_type":"single","track_duration_min":4.26,"artist_popularity":17,"artist_genres":null},{"track_id":"2Zq3Trov36G0TtrUt4ZklL","track_name":"superstar","track_popularity":59,"artist_name":"Artemas","artist_followers":1378935,"explicit":"TRUE","album_type":"album","track_duration_min":2.82,"artist_popularity":74,"artist_genres":null},{"track_id":"7rdHxPQimXkOcmUmsfGhxY","track_name":"Trim","track_popularity":1,"artist_name":"YUNG ALPO","artist_followers":166,"explicit":"TRUE","album_type":"single","track_duration_min":2.62,"artist_popularity":24,"artist_genres":null},{"track_id":"2H6cMXx0Kmj6XlbMx4BYi9","track_name":"Trip","track_popularity":32,"artist_name":"A2O","artist_followers":13826,"explicit":"FALSE","album_type":"album","track_duration_min":3.26,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"6DIrsJFPypT0Z3emDKnXYd","track_name":"HEARTBREAK SZN","track_popularity":32,"artist_name":"PRAX","artist_followers":1982,"explicit":"TRUE","album_type":"single","track_duration_min":2.89,"artist_popularity":23,"artist_genres":null},{"track_id":"05aYqGC8NNxr4jiHbQXLG3","track_name":"Higher Vibration","track_popularity":35,"artist_name":"Mark II","artist_followers":722,"explicit":"FALSE","album_type":"single","track_duration_min":2.4,"artist_popularity":25,"artist_genres":null},{"track_id":"0C42YiaJQyb0OExJ89bRbs","track_name":"Hold On (We Are Going Home)","track_popularity":34,"artist_name":"Suark","artist_followers":1496,"explicit":"FALSE","album_type":"single","track_duration_min":3.58,"artist_popularity":32,"artist_genres":null},{"track_id":"1yLkASt2rIp9W5t3NuZrwQ","track_name":"Kay","track_popularity":2,"artist_name":"Vince Bello","artist_followers":84,"explicit":"FALSE","album_type":"single","track_duration_min":3.85,"artist_popularity":6,"artist_genres":null},{"track_id":"2zLnwikuCxJwMkEI8tqDN4","track_name":"you never really cared","track_popularity":31,"artist_name":"Anna Marx","artist_followers":1693,"explicit":"FALSE","album_type":"single","track_duration_min":2.37,"artist_popularity":34,"artist_genres":null},{"track_id":"0kWQFzHzEPtvrKnwngvWyb","track_name":"Master of the Kill","track_popularity":42,"artist_name":"Ana Shine","artist_followers":27570,"explicit":"FALSE","album_type":"single","track_duration_min":3.25,"artist_popularity":45,"artist_genres":null},{"track_id":"5NWYu2pYfLGu3iQB08RC4m","track_name":"Fool For You","track_popularity":25,"artist_name":"Stray Currents","artist_followers":1073,"explicit":"FALSE","album_type":"single","track_duration_min":3.07,"artist_popularity":20,"artist_genres":null},{"track_id":"4cVw1IeHrFuVS58Glolglb","track_name":"blonde eyes","track_popularity":25,"artist_name":"Sopperior","artist_followers":2891,"explicit":"FALSE","album_type":"single","track_duration_min":2.41,"artist_popularity":30,"artist_genres":null},{"track_id":"31lp34zEvY603Xjkz2hrOo","track_name":"limerence","track_popularity":13,"artist_name":"Sopperior","artist_followers":2896,"explicit":"FALSE","album_type":"single","track_duration_min":1.48,"artist_popularity":30,"artist_genres":null},{"track_id":"1nNgDKWWX9MU9cp5FrHXRN","track_name":"Love Crazy - Stash Konig Remix","track_popularity":31,"artist_name":"MisterNez","artist_followers":200,"explicit":"FALSE","album_type":"single","track_duration_min":3.26,"artist_popularity":18,"artist_genres":null},{"track_id":"4ljqKsDyZzicNpBIMvDaZ5","track_name":"One More Time","track_popularity":6,"artist_name":"Fraser Stott","artist_followers":119,"explicit":"FALSE","album_type":"album","track_duration_min":3.94,"artist_popularity":13,"artist_genres":null},{"track_id":"5hw7dvgBRLvlCiALWwujYz","track_name":"Nectar - B-Rain Remix","track_popularity":29,"artist_name":"Senhit","artist_followers":54636,"explicit":"FALSE","album_type":"single","track_duration_min":2.95,"artist_popularity":27,"artist_genres":null},{"track_id":"6OTDBDVaK18xlne9rlGQok","track_name":"No Glory","track_popularity":52,"artist_name":"Besomorph","artist_followers":146944,"explicit":"FALSE","album_type":"single","track_duration_min":2.37,"artist_popularity":58,"artist_genres":"slap house"},{"track_id":"1NXbNEAcPvY5G1xvfN57aA","track_name":"Dracula","track_popularity":80,"artist_name":"Tame Impala","artist_followers":9509731,"explicit":"TRUE","album_type":"album","track_duration_min":3.42,"artist_popularity":84,"artist_genres":"neo-psychedelic, indie"},{"track_id":"6gRNWnK8b8BVfzrF65HGcf","track_name":"PSYCHWARD (with WesGhost ft. Project Pat)","track_popularity":51,"artist_name":"Diplo","artist_followers":2812337,"explicit":"TRUE","album_type":"single","track_duration_min":2.88,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"1e73KA7YWgIS9cLszZJRTu","track_name":"Where Have You Been","track_popularity":38,"artist_name":"Ken","artist_followers":7219,"explicit":"FALSE","album_type":"single","track_duration_min":2.08,"artist_popularity":50,"artist_genres":"hypertechno"},{"track_id":"44NbFZ0gEZ4U0LMMsHWyb3","track_name":"Great Tomorrow","track_popularity":3,"artist_name":"Kxng Leó","artist_followers":177,"explicit":"FALSE","album_type":"single","track_duration_min":2.21,"artist_popularity":1,"artist_genres":null},{"track_id":"05RK4klU7S2Jm50ONIjyM4","track_name":"Hearts Grow Cold (Saint Noël) [feat. Olivia Cadenza]","track_popularity":50,"artist_name":"Kayote","artist_followers":19306,"explicit":"FALSE","album_type":"single","track_duration_min":2.65,"artist_popularity":49,"artist_genres":null},{"track_id":"0Oriikd4ETp5qmzek6ZUD5","track_name":"Talk To You (ft. Elton John)","track_popularity":72,"artist_name":"Sam Fender","artist_followers":1204977,"explicit":"TRUE","album_type":"single","track_duration_min":5.28,"artist_popularity":73,"artist_genres":null},{"track_id":"5jw5yNpSTxdBAr1AV3N96s","track_name":"The Way I Am Now","track_popularity":25,"artist_name":"Lila Holler","artist_followers":1068,"explicit":"FALSE","album_type":"single","track_duration_min":3.77,"artist_popularity":17,"artist_genres":null},{"track_id":"0lRnxwJeUOxwEvWMw4uQKj","track_name":"Think About Us","track_popularity":68,"artist_name":"Sonny Fodera","artist_followers":306842,"explicit":"FALSE","album_type":"single","track_duration_min":2.96,"artist_popularity":66,"artist_genres":"house"},{"track_id":"6q43CVVE0VXEWlDjPdgH0c","track_name":"Trophy Wife","track_popularity":32,"artist_name":"Annalise Azadian","artist_followers":5701,"explicit":"TRUE","album_type":"single","track_duration_min":2.86,"artist_popularity":31,"artist_genres":null},{"track_id":"0vXBmU9Zus9ZtbR4kvZAjH","track_name":"baby can you sin for me","track_popularity":52,"artist_name":"Ex Habit","artist_followers":130408,"explicit":"FALSE","album_type":"single","track_duration_min":2.69,"artist_popularity":59,"artist_genres":"dark r&b"},{"track_id":"5UDCl2GNB6gT4ataiXTIGH","track_name":"Wild Side","track_popularity":48,"artist_name":"Poul","artist_followers":1161,"explicit":"FALSE","album_type":"single","track_duration_min":2.5,"artist_popularity":53,"artist_genres":null},{"track_id":"0dtNBn7Uww8lHFTs6mittj","track_name":"Amal","track_popularity":38,"artist_name":"Abeer Nehme","artist_followers":247771,"explicit":"FALSE","album_type":"single","track_duration_min":3.88,"artist_popularity":50,"artist_genres":"sholawat, khaleeji"},{"track_id":"2OZVskV28xxJjjhQqKTLSg","track_name":"PIXELATED KISSES","track_popularity":88,"artist_name":"Joji","artist_followers":10638942,"explicit":"TRUE","album_type":"single","track_duration_min":1.84,"artist_popularity":81,"artist_genres":null},{"track_id":"27sGm7McOlhSQ1szOJlpt8","track_name":"MEGAFAUNA","track_popularity":24,"artist_name":"Stanza","artist_followers":218,"explicit":"TRUE","album_type":"single","track_duration_min":2.87,"artist_popularity":10,"artist_genres":null},{"track_id":"6wi4GsP24EbQK8xrFl9tqI","track_name":"2nd To Me","track_popularity":31,"artist_name":"Christian Kennedy","artist_followers":297,"explicit":"TRUE","album_type":"single","track_duration_min":3.26,"artist_popularity":14,"artist_genres":null},{"track_id":"7Lo6USa0PiDkwSL3SkohSi","track_name":"Leavin","track_popularity":70,"artist_name":"Rod Wave","artist_followers":9673984,"explicit":"TRUE","album_type":"single","track_duration_min":2.81,"artist_popularity":76,"artist_genres":null},{"track_id":"3Dy4xsff7c0fRaTJpA54yd","track_name":"Gone Gone Gone","track_popularity":79,"artist_name":"David Guetta","artist_followers":27141717,"explicit":"FALSE","album_type":"single","track_duration_min":3.3,"artist_popularity":87,"artist_genres":"edm"},{"track_id":"6t62npoUwUGjrwIawdgwA5","track_name":"Goodbye For Now","track_popularity":33,"artist_name":"Olivia Cox","artist_followers":1263,"explicit":"FALSE","album_type":"single","track_duration_min":3.5,"artist_popularity":18,"artist_genres":"hipdut"},{"track_id":"2uHi2Fc38bs1keR72wTpwd","track_name":"Here and Now (Where I Wanna Be)","track_popularity":35,"artist_name":"Briezman","artist_followers":445,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":23,"artist_genres":"big room"},{"track_id":"3oKtvkoervQjzXyh1OMHHq","track_name":"Hold My Hand","track_popularity":35,"artist_name":"TAMMO","artist_followers":290,"explicit":"FALSE","album_type":"single","track_duration_min":4.4,"artist_popularity":19,"artist_genres":null},{"track_id":"4nds6JYKbzMdpXwuINhSEZ","track_name":"Part of Me","track_popularity":75,"artist_name":"A Boogie Wit da Hoodie","artist_followers":8986062,"explicit":"TRUE","album_type":"single","track_duration_min":2.78,"artist_popularity":77,"artist_genres":"melodic rap"},{"track_id":"2n3qIOygTL44mYyPIqlH5q","track_name":"Run For The Hills","track_popularity":37,"artist_name":"Jason Charles Miller","artist_followers":17999,"explicit":"FALSE","album_type":"single","track_duration_min":3.12,"artist_popularity":43,"artist_genres":null},{"track_id":"0n2QFaU59wkNJW0ruoaGeY","track_name":"So Far","track_popularity":28,"artist_name":"Visibly True","artist_followers":114,"explicit":"FALSE","album_type":"single","track_duration_min":3.07,"artist_popularity":20,"artist_genres":null},{"track_id":"6hjbNbbRdTCIW9qcZ8OA7t","track_name":"Something Like This","track_popularity":33,"artist_name":"The Haygoods","artist_followers":7785,"explicit":"FALSE","album_type":"single","track_duration_min":2.22,"artist_popularity":20,"artist_genres":null},{"track_id":"1DwscornXpj8fmOmYVlqZt","track_name":"Stateside + Zara Larsson","track_popularity":74,"artist_name":"PinkPantheress","artist_followers":4761364,"explicit":"FALSE","album_type":"album","track_duration_min":3.07,"artist_popularity":78,"artist_genres":"bedroom pop"},{"track_id":"2qtQauWqPaGHrmrXbDa35k","track_name":"Constellations","track_popularity":68,"artist_name":"Ian Asher","artist_followers":223449,"explicit":"FALSE","album_type":"single","track_duration_min":2.73,"artist_popularity":70,"artist_genres":null},{"track_id":"0l72HGRQkAR0imHxvpLi8a","track_name":"Die On This Hill","track_popularity":76,"artist_name":"SIENNA SPIRO","artist_followers":182377,"explicit":"FALSE","album_type":"single","track_duration_min":3.61,"artist_popularity":66,"artist_genres":null},{"track_id":"4idqAxBL2zVyfyMhi8QSZK","track_name":"Distance Of Living","track_popularity":35,"artist_name":"Aresty.","artist_followers":4,"explicit":"FALSE","album_type":"album","track_duration_min":2.72,"artist_popularity":17,"artist_genres":null},{"track_id":"4WFfPxJv1KRekG6mxn837K","track_name":"EYES CLOSED (with ZAYN)","track_popularity":88,"artist_name":"JISOO","artist_followers":7282227,"explicit":"FALSE","album_type":"single","track_duration_min":3.02,"artist_popularity":73,"artist_genres":"k-pop"},{"track_id":"6I65Y2uL3LrvFuBS5LNVZa","track_name":"Getting Down","track_popularity":30,"artist_name":"gigi","artist_followers":5,"explicit":"FALSE","album_type":"single","track_duration_min":3.13,"artist_popularity":13,"artist_genres":null},{"track_id":"0fOblXmOu0vHm0fa2RezCC","track_name":"Alarm","track_popularity":18,"artist_name":"Millo","artist_followers":429,"explicit":"FALSE","album_type":"single","track_duration_min":3.02,"artist_popularity":5,"artist_genres":null},{"track_id":"1heaOeArQtwtQKRK0gJe42","track_name":"All Night Long","track_popularity":39,"artist_name":"KOLBEIN","artist_followers":631,"explicit":"FALSE","album_type":"single","track_duration_min":2.75,"artist_popularity":28,"artist_genres":"hypertechno, melbourne bounce"},{"track_id":"3Du1WPZLhETDT6Jr4eumkU","track_name":"ANYMORE","track_popularity":18,"artist_name":"ASH7ON","artist_followers":308,"explicit":"TRUE","album_type":"single","track_duration_min":2.91,"artist_popularity":7,"artist_genres":null},{"track_id":"3m2dgCQagVWkSha04cZn23","track_name":"Bad Boy","track_popularity":60,"artist_name":"KROMA","artist_followers":11283,"explicit":"FALSE","album_type":"single","track_duration_min":2.45,"artist_popularity":54,"artist_genres":"hard techno"},{"track_id":"2omFbch4mNZo3ksaQeX78X","track_name":"Break Out","track_popularity":39,"artist_name":"zukrassverliebt","artist_followers":435,"explicit":"FALSE","album_type":"single","track_duration_min":3.2,"artist_popularity":24,"artist_genres":null},{"track_id":"5LlDzb8dY5h4npkWKVmjT5","track_name":"Tropical Vacation","track_popularity":40,"artist_name":"Riff Raff","artist_followers":193279,"explicit":"FALSE","album_type":"single","track_duration_min":2.92,"artist_popularity":48,"artist_genres":null},{"track_id":"4J1B7f8dgMWAcAHEm6Mvi8","track_name":"Chasing the Day","track_popularity":51,"artist_name":"TIMBER","artist_followers":37,"explicit":"FALSE","album_type":"single","track_duration_min":2.63,"artist_popularity":32,"artist_genres":null},{"track_id":"0jPkYjkGxwWMsRaTQbhV0x","track_name":"Used To Love","track_popularity":35,"artist_name":"Maithili Raelle","artist_followers":2633,"explicit":"FALSE","album_type":"single","track_duration_min":2.21,"artist_popularity":19,"artist_genres":null},{"track_id":"7sgx2p6KPYPia5fowJNZzO","track_name":"TBB","track_popularity":31,"artist_name":"Sabir","artist_followers":435,"explicit":"TRUE","album_type":"single","track_duration_min":2.41,"artist_popularity":18,"artist_genres":null},{"track_id":"31TXxq8gfgYyrYClnYY48m","track_name":"The Fate of Ophelia","track_popularity":87,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.76,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"5eXgqtg3T8Av0m1FUaGHex","track_name":"The Life of a Showgirl (feat. Sabrina Carpenter)","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145489371,"explicit":"TRUE","album_type":"album","track_duration_min":4.02,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"7wT275baetTMjwGNanHAno","track_name":"The Serpent","track_popularity":53,"artist_name":"Besomorph","artist_followers":146969,"explicit":"FALSE","album_type":"single","track_duration_min":3.25,"artist_popularity":58,"artist_genres":"slap house"},{"track_id":"6r4DKBIre2t3kU3FYMhhbN","track_name":"The Way I Know","track_popularity":29,"artist_name":"Padre T\u00f3xico","artist_followers":13179,"explicit":"FALSE","album_type":"single","track_duration_min":2.15,"artist_popularity":26,"artist_genres":"jazz rap"},{"track_id":"52LucZg8sDnqlkwXL6E7uX","track_name":"Turn Back Time","track_popularity":25,"artist_name":"Orvyn Sol","artist_followers":48,"explicit":"FALSE","album_type":"single","track_duration_min":3.19,"artist_popularity":15,"artist_genres":null},{"track_id":"2fTj7u4KEt7JfWQw4Qgj2J","track_name":"Wait For You","track_popularity":42,"artist_name":"MEDZ","artist_followers":6199,"explicit":"FALSE","album_type":"single","track_duration_min":3.45,"artist_popularity":37,"artist_genres":"melodic bass, future bass"},{"track_id":"3gKR0BUqtDToXhqhTH7Opg","track_name":"Rare","track_popularity":39,"artist_name":"Edd Stark","artist_followers":405,"explicit":"TRUE","album_type":"single","track_duration_min":2.9,"artist_popularity":28,"artist_genres":"chicago drill"},{"track_id":"2sMrvqJHSHGZ6uKcWoSNvW","track_name":"Rock Your Body","track_popularity":28,"artist_name":"IV Tune","artist_followers":54,"explicit":"FALSE","album_type":"album","track_duration_min":2.81,"artist_popularity":11,"artist_genres":null},{"track_id":"62V2ZHslgQV98gH4AuVXnr","track_name":"Ruin The Friendship","track_popularity":92,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"FALSE","album_type":"album","track_duration_min":3.67,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"4DCyPp2B9vSmkPUkctFumT","track_name":"Monsters","track_popularity":38,"artist_name":"IAN SIZE","artist_followers":1844,"explicit":"TRUE","album_type":"single","track_duration_min":2.17,"artist_popularity":32,"artist_genres":"melodic bass, nightcore, bass music"},{"track_id":"3yWuTOYDztXjZxdE2cIRUa","track_name":"Opalite","track_popularity":97,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.92,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"1k2aDzjpZVZPA2N3mMLbWq","track_name":"High Or Die","track_popularity":39,"artist_name":"Beatline","artist_followers":475,"explicit":"FALSE","album_type":"single","track_duration_min":2.51,"artist_popularity":20,"artist_genres":"future house"},{"track_id":"4qmFC3Jz5aQ0erlk2OSi2X","track_name":"Honey","track_popularity":91,"artist_name":"Taylor Swift","artist_followers":145489371,"explicit":"TRUE","album_type":"album","track_duration_min":3.02,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"0P3GQuGbDqVP9ZMs19RcUa","track_name":"i don't need ur love","track_popularity":55,"artist_name":"Rumelis","artist_followers":8741,"explicit":"TRUE","album_type":"single","track_duration_min":2.23,"artist_popularity":49,"artist_genres":"dark r&b"},{"track_id":"29JrUHRJumKzVu5xeELYFV","track_name":"It's Giving","track_popularity":40,"artist_name":"Third Vibes","artist_followers":3776,"explicit":"FALSE","album_type":"single","track_duration_min":2.49,"artist_popularity":24,"artist_genres":null},{"track_id":"2x3mwb96B6TquRqMtbxUE1","track_name":"Actually Romantic","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"TRUE","album_type":"album","track_duration_min":2.72,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"1jVMR9A0OYA8nFynsTnQsx","track_name":"Broken Glass","track_popularity":32,"artist_name":"Phay","artist_followers":5344,"explicit":"TRUE","album_type":"single","track_duration_min":2.27,"artist_popularity":20,"artist_genres":null},{"track_id":"1appZ3c336FkPvCuywfmrs","track_name":"CANCELLED!","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"TRUE","album_type":"album","track_duration_min":3.52,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"2TEQvxxQabwLQMqWMg1qGu","track_name":"Wi$h Li$t","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"TRUE","album_type":"album","track_duration_min":2.49,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"3V6Jc5Nqg15U9sH3O3e4rF","track_name":"Hurt","track_popularity":25,"artist_name":"Mark II","artist_followers":722,"explicit":"FALSE","album_type":"single","track_duration_min":3.2,"artist_popularity":25,"artist_genres":null},{"track_id":"01YQ3m0HkYlJ5qO51Jp95V","track_name":"Hate Me","track_popularity":36,"artist_name":"Medusa","artist_followers":1256,"explicit":"TRUE","album_type":"single","track_duration_min":2.49,"artist_popularity":22,"artist_genres":null},{"track_id":"7v9v84D9f7l88mB99p2g5i","track_name":"My Kind of Beautiful","track_popularity":56,"artist_name":"The All-American Rejects","artist_followers":3134186,"explicit":"FALSE","album_type":"single","track_duration_min":2.84,"artist_popularity":67,"artist_genres":"pop punk, emo"},{"track_id":"02M34y2G16rU61Jt0xM08r","track_name":"Cursed","track_popularity":50,"artist_name":"Ex Habit","artist_followers":130408,"explicit":"FALSE","album_type":"single","track_duration_min":2.22,"artist_popularity":59,"artist_genres":"dark r&b"},{"track_id":"67K9uHlC48L99uR1Y4q7s5","track_name":"I'll Be There","track_popularity":39,"artist_name":"The Haygoods","artist_followers":7785,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":20,"artist_genres":null},{"track_id":"7C4uXhEa359Y49bM9yVd5B","track_name":"Daydream","track_popularity":43,"artist_name":"Millo","artist_followers":429,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":5,"artist_genres":null},{"track_id":"08e31E05c3Y2fCq1t9f36p","track_name":"Never Let Go","track_popularity":25,"artist_name":"Tory James","artist_followers":32,"explicit":"FALSE","album_type":"single","track_duration_min":3.11,"artist_popularity":32,"artist_genres":null},{"track_id":"1b43n8oO24U5jT0Vz3xQ4B","track_name":"Lasting Forever","track_popularity":29,"artist_name":"Tory James","artist_followers":32,"explicit":"FALSE","album_type":"single","track_duration_min":3.12,"artist_popularity":32,"artist_genres":null},{"track_id":"1c7gTj854q9l3pY52P5O65","track_name":"Too Good to Be True","track_popularity":37,"artist_name":"Anna Marx","artist_followers":1693,"explicit":"FALSE","album_type":"single","track_duration_min":2.42,"artist_popularity":34,"artist_genres":null},{"track_id":"5q0E5x29R34uY5l49H3k6f","track_name":"Good Days","track_popularity":28,"artist_name":"Anna Marx","artist_followers":1693,"explicit":"FALSE","album_type":"single","track_duration_min":2.74,"artist_popularity":34,"artist_genres":null},{"track_id":"3OnCnEWgy79xR5pr2kv4TX","track_name":"Misirlou","track_popularity":47,"artist_name":"Dick Dale","artist_followers":4137984,"explicit":"FALSE","album_type":"album","track_duration_min":2.26,"artist_popularity":41,"artist_genres":"surf rock"},{"track_id":"2QfiRTz5Yc8DdShCxG1tB2","track_name":"Johnny B. Goode","track_popularity":74,"artist_name":"Chuck Berry","artist_followers":2211249,"explicit":"FALSE","album_type":"album","track_duration_min":2.69,"artist_popularity":63,"artist_genres":"rockabilly, rock and roll"},{"track_id":"68FTJoO8edSpzuYb6lGW6P","track_name":"Saddle Tramp","track_popularity":58,"artist_name":"Marty Robbins","artist_followers":626733,"explicit":"FALSE","album_type":"album","track_duration_min":2.05,"artist_popularity":61,"artist_genres":"classic country, outlaw country"},{"track_id":"0AQquaENerGps8BQmbPw14","track_name":"Big Iron","track_popularity":71,"artist_name":"Marty Robbins","artist_followers":626733,"explicit":"FALSE","album_type":"album","track_duration_min":3.92,"artist_popularity":60,"artist_genres":"classic country, outlaw country"},{"track_id":"4f8hBeMXMvssn6HtHk16Ym","track_name":"The End of the World","track_popularity":66,"artist_name":"Skeeter Davis","artist_followers":1555547,"explicit":"FALSE","album_type":"album","track_duration_min":2.57,"artist_popularity":61,"artist_genres":"country pop, classic country, country, country gospel"},{"track_id":"2zKz2T2M2p9tXjJ3s75m5J","track_name":"Rave On","track_popularity":65,"artist_name":"Buddy Holly","artist_followers":3289053,"explicit":"FALSE","album_type":"album","track_duration_min":1.82,"artist_popularity":64,"artist_genres":"rockabilly, rock and roll"},{"track_id":"4Qk7b3K3bY90M0cTzM5qjP","track_name":"La Bamba","track_popularity":68,"artist_name":"Ritchie Valens","artist_followers":3845667,"explicit":"FALSE","album_type":"album","track_duration_min":2.16,"artist_popularity":60,"artist_genres":"chicano rock, rock and roll, r&b, soul, pop rock"},{"track_id":"5Yn99Kx0e7c5N1i30Q7tH3","track_name":"Blue Suede Shoes","track_popularity":77,"artist_name":"Elvis Presley","artist_followers":15170366,"explicit":"FALSE","album_type":"album","track_duration_min":2.01,"artist_popularity":80,"artist_genres":"rock and roll, rockabilly, country, gospel, rhythm and blues, blues, pop, adult contemporary"},{"track_id":"5n30wMh1pB2Wd4eA5c0lFh","track_name":"Hound Dog","track_popularity":76,"artist_name":"Elvis Presley","artist_followers":15170366,"explicit":"FALSE","album_type":"album","track_duration_min":2.17,"artist_popularity":80,"artist_genres":"rock and roll, rockabilly, country, gospel, rhythm and blues, blues, pop, adult contemporary"},{"track_id":"3HjK4jN0vWz8eG0b3Qz4kF","track_name":"Jailhouse Rock","track_popularity":73,"artist_name":"Elvis Presley","artist_followers":15170366,"explicit":"FALSE","album_type":"album","track_duration_min":2.36,"artist_popularity":80,"artist_genres":"rock and roll, rockabilly, country, gospel, rhythm and blues, blues, pop, adult contemporary"},{"track_id":"57W4t17H115d9y1tM90y8q","track_name":"Rock Around the Clock","track_popularity":64,"artist_name":"Bill Haley & His Comets","artist_followers":1495208,"explicit":"FALSE","album_type":"album","track_duration_min":2.09,"artist_popularity":59,"artist_genres":"rock and roll, rockabilly"},{"track_id":"0HkX4gWd8U45GZ2lJ2U28D","track_name":"Bye Bye Love","track_popularity":65,"artist_name":"The Everly Brothers","artist_followers":2786315,"explicit":"FALSE","album_type":"album","track_duration_min":2.09,"artist_popularity":63,"artist_genres":"country pop, rock and roll, country, folk, pop, adult contemporary"},{"track_id":"117Qd2s7z179N2q4JbK49u","track_name":"Wake Up Little Susie","track_popularity":64,"artist_name":"The Everly Brothers","artist_followers":2786315,"explicit":"FALSE","album_type":"album","track_duration_min":2.04,"artist_popularity":63,"artist_genres":"country pop, rock and roll, country, folk, pop, adult contemporary"},{"track_id":"0WnE342uWp6X89p4j68k6m","track_name":"All I Have To Do Is Dream","track_popularity":67,"artist_name":"The Everly Brothers","artist_followers":2786315,"explicit":"FALSE","album_type":"album","track_duration_min":2.23,"artist_popularity":63,"artist_genres":"country pop, rock and roll, country, folk, pop, adult contemporary"}]
+        
+        // Define the pre-trained coefficients (weights) for the Linear Regression model
+        const MODEL_COEFFICIENTS = {
+            bias: 35.0,
+            artistPopWeight: 0.8,
+            durationWeight: -1.5,
+            singleStatusWeight: 5.0 
+        };
 
-            // Update the display
-            renderTable(filteredData);
-        }
+        // DOM elements for inputs
+        const artistSelect = document.getElementById('artist-select');
+        const genreSelect = document.getElementById('genre-select');
+        const trackSelect = document.getElementById('track-select'); 
+        const artistFollowersInput = document.getElementById('artist-followers');
+        const explicitStatusInput = document.getElementById('explicit-status');
+        const albumTypeDisplay = document.getElementById('album-type-display');
+        const artistPopInput = document.getElementById('artist-pop');
+        const durationMinInput = document.getElementById('duration-min');
+        const summaryElement = document.getElementById('track-artist-summary');
+        
+        // DOM elements for output (needed for resetting)
+        const outputElement = document.getElementById('prediction-output');
+        const messageElement = document.getElementById('prediction-message');
 
-        // 4. RENDERING LOGIC
-        function renderTable(data) {
-            // Clear existing table content
-            tableBody.innerHTML = '';
-            
-            // Update the record count
-            recordCount.textContent = data.length.toLocaleString();
+        // Initial default state
+        const DEFAULT_SELECTION = {
+            artist: 'Custom Artist',
+            genre: 'custom genre',
+            track: 'Custom Track', 
+            followers: 'N/A',
+            artist_popularity: 75,
+            duration_min: 3.0,
+            explicit: 'N/A',
+            album_type: 'single'
+        };
 
-            data.forEach(track => {
-                const row = tableBody.insertRow();
-                
-                // Map the data fields to the table cells (ensuring all fields are included)
-                // Used toFixed(0) for followers and Popularity for cleaner display of large numbers
-                row.insertCell().textContent = track.track_name;
-                row.insertCell().textContent = track.artist_name;
-                row.insertCell().textContent = track.track_id;
-                row.insertCell().textContent = track.track_popularity;
-                row.insertCell().textContent = track.artist_popularity;
-                row.insertCell().textContent = track.explicit;
-                row.insertCell().textContent = track.album_type;
-                row.insertCell().textContent = track.track_duration_min.toFixed(2);
-                row.insertCell().textContent = track.artist_followers.toLocaleString();
-                row.insertCell().textContent = track.artist_genres || 'N/A'; // Use 'N/A' for null genres
-            });
-        }
+        // Global map for quick lookups (Artist -> Genres, Features)
+        let ARTIST_METADATA = {};
+        let ALL_GENRES = new Set();
+        let ALL_ARTISTS = new Set();
+        let TRACK_MAP = {}; // Map to store tracks by ID for easy lookup
 
-        // 5. THE RESET FUNCTIONALITY
-        function resetFilters() {
-            // Reset the select elements to the default "All" option
-            artistFilter.value = ""; 
-            genreFilter.value = ""; 
+        // --- Core Functions for Two-Way Filtering ---
 
-            // Re-render the table with the original, full dataset
-            renderTable(spotifyData);
+        /**
+         * Builds the metadata map for artists and extracts all unique genres.
+         */
+        function buildMetadata() {
+            ARTIST_METADATA = {};
+            ALL_GENRES.clear();
+            ALL_ARTISTS.clear();
+            TRACK_MAP = {};
 
-            console.log("Filters reset. All data restored.");
-        }
+            SAMPLE_TRACK_DATA.forEach(track => {
+                const artist = track.artist_name;
+                ALL_ARTISTS.add(artist);
+                TRACK_MAP[track.track_id] = track;
 
-        // Run the initialization function when the page loads
-        document.addEventListener('DOMContentLoaded', initializeData);
-    </script>
+                // Initialize artist entry if it doesn't exist
+                if (!ARTIST_METADATA[artist]) {
+                    ARTIST_METADATA[artist] = {
+                        tracks: [],
+                        followers: parseInt(track.artist_followers),
+                        popularity: parseInt(track.artist_popularity)
+                    };
+                }
+
+                // Collect track data 
+                ARTIST_METADATA[artist].tracks.push(track);
+                
+                // Collect genres for filtering
+                // Handle null genres (which appeared in the CSV)
+                if (track.artist_genres) {
+                    track.artist_genres.split(',').map(g => g.trim()).forEach(g => {
+                        ALL_GENRES.add(g);
+                    });
+                }
+            });
+        }
+
+        /**
+         * Handles when the Artist dropdown value changes.
+         * 1. Filters the Genre dropdown.
+         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
+         * 3. Loads the corresponding feature data (default/custom track).
+         */
+        function handleArtistChange() {
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
+            
+            // 1. Filter Genres based on selected Artist
+            filterGenreDropdown(selectedArtist);
+            
+            // If the previously selected genre is no longer available, reset the genre dropdown
+            if (!Array.from(genreSelect.options).some(option => option.value === selectedGenre)) {
+                genreSelect.selectedIndex = 0; // Select the first available genre or default
+            }
+
+            // 2. Filter Tracks based on the new combination
+            filterTrackDropdown(selectedArtist, genreSelect.value);
+
+            // 3. Load Features (NO prediction yet)
+            loadFeatures();
+        }
+
+        /**
+         * Handles when the Genre dropdown value changes.
+         * 1. Filters the Artist dropdown.
+         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
+         * 3. Loads the corresponding feature data (default/custom track).
+         */
+        function handleGenreChange() {
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
+
+            // 1. Filter Artists based on selected Genre
+            filterArtistDropdown(selectedGenre);
+            
+            // If the previously selected artist is no longer available, reset the artist dropdown
+            if (!Array.from(artistSelect.options).some(option => option.value === selectedArtist)) {
+                artistSelect.selectedIndex = 0; // Select the first available artist or default
+            }
+
+            // 2. Filter Tracks based on the new combination
+            filterTrackDropdown(artistSelect.value, selectedGenre);
+
+            // 3. Load Features (NO prediction yet)
+            loadFeatures();
+        }
+        
+        /**
+         * Handles when the Track dropdown value changes.
+         * 1. Loads the specific track's features.
+         * 2. Runs the prediction.
+         */
+        function handleTrackChange() {
+            // No need to re-filter Artist/Genre dropdowns, just load the specific track features
+            loadFeatures();
+        }
+
+        /**
+         * Populates the Artist dropdown, filtering by an optional genre.
+         */
+        function filterArtistDropdown(filterGenre = null) {
+            const previousArtist = artistSelect.value;
+            artistSelect.innerHTML = `<option value="${DEFAULT_SELECTION.artist}">${DEFAULT_SELECTION.artist}</option>`;
+            let filteredArtists = Array.from(ALL_ARTISTS);
+
+            if (filterGenre && filterGenre !== DEFAULT_SELECTION.genre) {
+                filteredArtists = filteredArtists.filter(artist => {
+                    return ARTIST_METADATA[artist].tracks.some(track => 
+                        // Handle null genres safely
+                        (track.artist_genres && track.artist_genres.split(',').map(g => g.trim()).includes(filterGenre))
+                    );
+                });
+            }
+
+            filteredArtists.sort().forEach(artist => {
+                const option = document.createElement('option');
+                option.value = artist;
+                option.textContent = artist;
+                artistSelect.appendChild(option);
+            });
+            // Re-select previous value if still available
+            if (Array.from(artistSelect.options).some(option => option.value === previousArtist)) {
+                artistSelect.value = previousArtist;
+            }
+        }
+        
+        /**
+         * Populates the Genre dropdown, filtering by an optional artist.
+         */
+        function filterGenreDropdown(filterArtist = null) {
+            const previousGenre = genreSelect.value;
+            genreSelect.innerHTML = `<option value="${DEFAULT_SELECTION.genre}">${DEFAULT_SELECTION.genre}</option>`;
+            let filteredGenres = Array.from(ALL_GENRES);
+
+            if (filterArtist && filterArtist !== DEFAULT_SELECTION.artist) {
+                const artistTracks = ARTIST_METADATA[filterArtist]?.tracks || [];
+                const genresForArtist = new Set();
+                artistTracks.forEach(track => {
+                    if (track.artist_genres) {
+                        track.artist_genres.split(',').map(g => g.trim()).forEach(g => genresForArtist.add(g));
+                    }
+                });
+                filteredGenres = Array.from(genresForArtist);
+            }
+
+            filteredGenres.sort().forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre;
+                genreSelect.appendChild(option);
+            });
+            // Re-select previous value if still available
+            if (Array.from(genreSelect.options).some(option => option.value === previousGenre)) {
+                genreSelect.value = previousGenre;
+            }
+        }
+
+        /**
+         * Populates the Track dropdown based on the selected artist and genre.
+         */
+        function filterTrackDropdown(artist, genre) {
+            trackSelect.innerHTML = `<option value="${DEFAULT_SELECTION.track}">Custom Track</option>`;
+
+            if (artist === DEFAULT_SELECTION.artist) {
+                // If Custom Artist, no tracks to show
+                return;
+            }
+
+            // Filter tracks by BOTH artist and genre
+            const filteredTracks = ARTIST_METADATA[artist]?.tracks.filter(track => {
+                // Handle null genres safely
+                const trackGenres = track.artist_genres ? track.artist_genres.split(',').map(g => g.trim()) : [];
+                return genre === DEFAULT_SELECTION.genre || trackGenres.includes(genre);
+            }) || [];
+            
+            filteredTracks.sort((a, b) => a.track_name.localeCompare(b.track_name)).forEach(track => {
+                const option = document.createElement('option');
+                option.value = track.track_id; // Use ID for unique identification
+                // Display track name and its actual popularity
+                option.textContent = `${track.track_name} (Pop: ${track.track_popularity})`; 
+                trackSelect.appendChild(option);
+            });
+        }
+
+        // --- Feature Loading and UI Logic ---
+        
+        /**
+         * Cleans up and formats large follower numbers.
+         */
+        function formatFollowers(count) {
+            if (isNaN(count)) return 'N/A';
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M';
+            }
+            if (count >= 1000) {
+                return (count / 1000).toFixed(0) + 'K';
+            }
+            return count.toString();
+        }
+
+        /**
+         * Loads and displays the feature data based on the current selections.
+         */
+        function loadFeatures() {
+            const selectedTrackId = trackSelect.value;
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
+
+            let features = {};
+            let isCustomMode = false;
+
+            if (selectedTrackId === DEFAULT_SELECTION.track || selectedArtist === DEFAULT_SELECTION.artist) {
+                // Case 1: Custom Track / Default Selection (Editable Inputs)
+                isCustomMode = true;
+                features = DEFAULT_SELECTION;
+                summaryElement.textContent = `${DEFAULT_SELECTION.track} | ${selectedArtist} | ${selectedGenre}`;
+            } else {
+                // Case 2: Specific Track Selected (Read-Only Inputs)
+                const track = TRACK_MAP[selectedTrackId];
+                if (!track) {
+                    // Fallback if track data is somehow missing
+                    return; 
+                }
+                
+                features = {
+                    artist: track.artist_name,
+                    genre: selectedGenre, // We stick with the genre filter for display
+                    followers: formatFollowers(parseInt(track.artist_followers)),
+                    artist_popularity: parseInt(track.artist_popularity),
+                    duration_min: parseFloat(track.track_duration_min),
+                    // The explicit column is a string "TRUE" or "FALSE" due to CSV loading.
+                    explicit: track.explicit.toUpperCase() === 'TRUE' ? 'Explicit' : 'Clean',
+                    album_type: track.album_type
+                };
+
+                summaryElement.textContent = `${track.track_name} | ${features.artist} (${selectedGenre})`;
+            }
+
+            // Update UI fields
+            setFeatureLock(!isCustomMode); // Lock if a real track is selected
+            trackSelect.disabled = (selectedArtist === DEFAULT_SELECTION.artist);
+
+            // Display values
+            artistFollowersInput.value = features.followers;
+            albumTypeDisplay.value = features.album_type.charAt(0).toUpperCase() + features.album_type.slice(1);
+            
+            // Set input values (ensuring they are populated in custom mode too)
+            artistPopInput.value = features.artist_popularity; 
+            durationMinInput.value = features.duration_min.toFixed(2); 
+            
+            // Explicit status styling
+            const statusText = features.explicit;
+            const statusColor = statusText === 'Explicit' ? 'bg-red-900/50 text-red-300' : 
+                                statusText === 'Clean' ? 'bg-green-900/50 text-green-300' : 'bg-gray-700 text-gray-400';
+            explicitStatusInput.value = statusText;
+            explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold ${statusColor} input-locked`;
+
+            // --- Reset Prediction Output ---
+            outputElement.textContent = '--';
+            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl`;
+            messageElement.textContent = 'Click "Predict Popularity" to calculate the score.';
+            messageElement.className = 'text-center text-lg font-semibold text-gray-400';
+        }
+
+        /**
+         * Toggles the read-only state and styling for the numerical feature inputs.
+         */
+        function setFeatureLock(isLocked) {
+            // Only Artist Pop and Duration are editable in Custom mode
+            const editableInputs = [artistPopInput, durationMinInput];
+            editableInputs.forEach(input => {
+                input.readOnly = isLocked;
+                input.classList.toggle('input-locked', isLocked);
+                input.classList.toggle('bg-gray-700', !isLocked);
+                input.classList.toggle('text-gray-400', isLocked);
+                input.classList.toggle('text-white', !isLocked);
+                input.setAttribute('tabindex', isLocked ? -1 : 0);
+            });
+        }
+
+        /**
+         * Resets all inputs and filters to the initial default state.
+         */
+        function handleReset() {
+            // Reset Dropdowns
+            artistSelect.value = DEFAULT_SELECTION.artist;
+            genreSelect.value = DEFAULT_SELECTION.genre;
+            trackSelect.value = DEFAULT_SELECTION.track;
+            
+            // Re-run the filtering logic to reset the available options
+            handleArtistChange(); // This triggers the full cascade to reset features
+            
+            // Explicitly load features for the default state and clear prediction
+            loadFeatures(); 
+        }
+        
+        // --- Prediction Logic (Runs ONLY when button is clicked) ---
+
+        function predictPopularity(artistPop, durationMin, isSingle) {
+            const { bias, artistPopWeight, durationWeight, singleStatusWeight } = MODEL_COEFFICIENTS;
+
+            let prediction = bias + 
+                             (artistPop * artistPopWeight) + 
+                             (durationMin * durationWeight) + 
+                             (isSingle ? singleStatusWeight : 0);
+
+            prediction = Math.max(0, Math.min(100, prediction));
+            return prediction;
+        }
+
+        function handlePrediction() {
+            // Get current selected features from the input fields
+            const artistPop = parseFloat(artistPopInput.value);
+            const durationMin = parseFloat(durationMinInput.value);
+            const albumType = albumTypeDisplay.value.toLowerCase();
+            const isSingle = albumType === 'single';
+
+            const outputElement = document.getElementById('prediction-output');
+            const messageElement = document.getElementById('prediction-message');
+            
+            // --- Input Validation ---
+            if (isNaN(artistPop) || artistPop < 0 || artistPop > 100 || isNaN(durationMin) || durationMin <= 0) {
+                outputElement.textContent = 'Err';
+                outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-red-500 shadow-xl transition-all duration-500`;
+                messageElement.textContent = 'Please ensure Artist Popularity (0-100) and Duration (Min 0.5) are valid numbers.';
+                messageElement.className = 'text-center text-lg font-semibold text-red-500';
+                return;
+            }
+
+            // --- Run Prediction ---
+            const predictedScore = predictPopularity(artistPop, durationMin, isSingle);
+
+            // --- Update UI ---
+            const roundedScore = Math.round(predictedScore);
+            outputElement.textContent = roundedScore;
+            
+            let colorClass = 'border-gray-500';
+            let message = "A niche track, potentially a deep cut or older release.";
+
+            if (roundedScore >= 80) {
+                colorClass = 'border-green-500';
+                message = "🔥 Mega Hit Potential! High probability of trending.";
+            } else if (roundedScore >= 60) {
+                colorClass = 'border-yellow-500';
+                message = "⭐ Strong Performer. Likely to be included in popular playlists.";
+            } else if (roundedScore >= 40) {
+                colorClass = 'border-blue-500';
+                message = "📈 Moderate Success. Solid track for the artist's discography.";
+            } else {
+                colorClass = 'border-red-500';
+                message = "📉 Low Popularity. May be an album filler or highly experimental.";
+            }
+            
+            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 ${colorClass} shadow-xl transition-all duration-500`;
+            messageElement.textContent = message;
+            messageElement.className = 'text-center text-lg font-semibold ' + (roundedScore >= 80 ? 'text-green-400' : 'text-gray-400');
+        }
+
+        // --- Initialization ---
+
+        /**
+         * Initializes the application.
+         */
+        function initializeApp() {
+            buildMetadata();
+            // Initial population of all dropdowns with all options/defaults
+            filterArtistDropdown(null);
+            filterGenreDropdown(null);
+            filterTrackDropdown(DEFAULT_SELECTION.artist, DEFAULT_SELECTION.genre); 
+
+            // Select the default custom options initially
+            artistSelect.value = DEFAULT_SELECTION.artist;
+            genreSelect.value = DEFAULT_SELECTION.genre;
+            trackSelect.value = DEFAULT_SELECTION.track;
+            
+            // Load features for display, but DO NOT run initial prediction
+            loadFeatures();
+        }
+
+        // Initialize the app on page load
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
 </body>
-</html>
-
