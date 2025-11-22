@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Data Filter</title>
+    <title>Spotify Data Filter - Full Structure</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
-        .controls { margin-bottom: 20px; display: flex; gap: 20px; align-items: center; }
+        h1 { margin-bottom: 5px; }
+        .controls { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; }
         .controls label, .controls select { font-size: 16px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
         th { background-color: #f2f2f2; cursor: pointer; }
         button { padding: 10px 15px; background-color: #f44336; color: white; border: none; cursor: pointer; border-radius: 4px; }
         button:hover { background-color: #d32f2f; }
@@ -18,7 +19,7 @@
 </head>
 <body>
 
-    <h1>Spotify Data Explorer</h1>
+    <h1>Spotify Data Explorer (Full Structure)</h1>
 
     <div class="controls">
         <div class="select-group">
@@ -28,7 +29,7 @@
                 </select>
         </div>
         <div class="select-group">
-            <label for="genre-filter">Filter by Genre:</label>
+            <label for="genre-filter">Filter by Genre (Includes):</label>
             <select id="genre-filter" onchange="applyFilters()">
                 <option value="">All Genres</option>
                 </select>
@@ -44,9 +45,14 @@
             <tr>
                 <th>Track Name</th>
                 <th>Artist Name</th>
-                <th>Genre</th>
-                <th>Popularity</th>
+                <th>Track ID</th>
+                <th>Track Pop.</th>
+                <th>Artist Pop.</th>
+                <th>Explicit</th>
+                <th>Album Type</th>
                 <th>Duration (min)</th>
+                <th>Artist Followers</th>
+                <th>All Genres</th>
             </tr>
         </thead>
         <tbody id="data-table-body">
@@ -54,17 +60,12 @@
     </table>
 
     <script>
-        // 1. EMBED YOUR DATA HERE
-        // Paste the full JSON output from the previous step here.
-        // NOTE: This snippet is truncated for brevity. Use your full data.
-        const spotifyData = [
-            {"track_name":"Trippy Mane (ft. Project Pat)","artist_name":"Diplo","artist_genres":"moombahton","track_popularity":0,"track_duration_min":1.55},
-            {"track_name":"OMG!","artist_name":"Yelawolf","artist_genres":"country hip hop, southern hip hop","track_popularity":0,"track_duration_min":3.07},
-            {"track_name":"Hard 2 Find","artist_name":"Riff Raff","artist_genres":null,"track_popularity":4,"track_duration_min":2.55},
-            {"track_name":"Still Get Like That (ft. Project Pat & Starrah)","artist_name":"Diplo","artist_genres":"moombahton","track_popularity":30,"track_duration_min":1.69},
-            {"track_name":"ride me like a harley","artist_name":"Rumelis","artist_genres":"dark r&b","track_popularity":0,"track_duration_min":2.39},
-            // ... approximately 8000 more records here ...
-        ];
+        // 1. EMBED YOUR FULL DATA HERE
+        // NOTE: This snippet is truncated for brevity. You must paste your full JSON array here 
+        // starting with 'const spotifyData = [' and ending with '];'
+        const spotifyData = [{"track_id":"3EJS5LyekDim1Tf5rBFmZl","track_name":"Trippy Mane (ft. Project Pat)","track_popularity":0,"artist_name":"Diplo","artist_followers":2812821,"explicit":"TRUE","album_type":"album","track_duration_min":1.55,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"1oQW6G2ZiwMuHqlPpP27DB","track_name":"OMG!","track_popularity":0,"artist_name":"Yelawolf","artist_followers":2363438,"explicit":"TRUE","album_type":"single","track_duration_min":3.07,"artist_popularity":64,"artist_genres":"country hip hop, southern hip hop"},{"track_id":"7mdkjzoIYlf1rx9EtBpGmU","track_name":"Hard 2 Find","track_popularity":4,"artist_name":"Riff Raff","artist_followers":193302,"explicit":"TRUE","album_type":"single","track_duration_min":2.55,"artist_popularity":48,"artist_genres":null},{"track_id":"67rW0Zl7oB3qEpD5YWWE5w","track_name":"Still Get Like That (ft. Project Pat & Starrah)","track_popularity":30,"artist_name":"Diplo","artist_followers":2813710,"explicit":"TRUE","album_type":"album","track_duration_min":1.69,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"15xptTfRBrjsppW0INUZjf","track_name":"ride me like a harley","track_popularity":0,"artist_name":"Rumelis","artist_followers":8682,"explicit":"TRUE","album_type":"single","track_duration_min":2.39,"artist_popularity":48,"artist_genres":"dark r&b"},{"track_id":"4ccpCcZYseq8VrPMK1EDs0","track_name":"BLEED","track_popularity":2,"artist_name":"Minzie","artist_followers":7218,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":46,"artist_genres":"dark r&b"},{"track_id":"3QoQ3HqXTAjgEl9LbNMbYp","track_name":"Te Procuro na Cidade","track_popularity":20,"artist_name":"AZERDK","artist_followers":1657,"explicit":"FALSE","album_type":"single","track_duration_min":4.12,"artist_popularity":30,"artist_genres":null},{"track_id":"1YEZbdT417SfolPQzaoHs2","track_name":"come closer","track_popularity":27,"artist_name":"Rumelis","artist_followers":8802,"explicit":"FALSE","album_type":"single","track_duration_min":2.53,"artist_popularity":49,"artist_genres":"dark r&b"},{"track_id":"4pZ949nFW5SurwzE0TSe7I","track_name":"Cupido Vagabundo","track_popularity":16,"artist_name":"Toni dos Anjos","artist_followers":475,"explicit":"FALSE","album_type":"single","track_duration_min":2.92,"artist_popularity":6,"artist_genres":null},{"track_id":"0L0LgwFZ7UtBnRNQvSBty6","track_name":"LET\u2019S GO!","track_popularity":33,"artist_name":"PsychoYP","artist_followers":154802,"explicit":"TRUE","album_type":"single","track_duration_min":2.4,"artist_popularity":48,"artist_genres":"nigerian drill, alt\u00e9, afro adura, afrobeats, afrobeat, afroswing"}];
+        // ... PASTE THE REST OF YOUR JSON DATA HERE ...
+        // Note: The total number of records processed is 8981.
 
         let availableArtists = new Set();
         let availableGenres = new Set();
@@ -82,7 +83,10 @@
                 // Handle multiple genres per track (comma-separated list)
                 if (track.artist_genres) {
                     track.artist_genres.split(', ').forEach(genre => {
-                        availableGenres.add(genre.trim());
+                        // Clean up the genre string before adding
+                        if (genre.trim() !== "") {
+                            availableGenres.add(genre.trim());
+                        }
                     });
                 }
             });
@@ -97,7 +101,6 @@
 
         function populateFilter(selectElement, optionsArray) {
             optionsArray.forEach(optionText => {
-                // Ignore empty or null entries
                 if (optionText && optionText.length > 0) {
                     const option = document.createElement('option');
                     option.value = optionText;
@@ -115,15 +118,16 @@
             // Start with the full dataset
             let filteredData = spotifyData;
 
-            // Apply Artist Filter
+            // Apply Artist Filter (Exact Match)
             if (selectedArtist) {
                 filteredData = filteredData.filter(track => track.artist_name === selectedArtist);
             }
 
-            // Apply Genre Filter
+            // Apply Genre Filter (Substring Match to handle multiple genres)
             if (selectedGenre) {
                 filteredData = filteredData.filter(track => 
                     // Check if the track's genre string contains the selected genre
+                    // Note: Uses null-safe access and includes for multi-genre tracks
                     track.artist_genres && track.artist_genres.includes(selectedGenre)
                 );
             }
@@ -138,22 +142,27 @@
             tableBody.innerHTML = '';
             
             // Update the record count
-            recordCount.textContent = data.length;
+            recordCount.textContent = data.length.toLocaleString();
 
             data.forEach(track => {
                 const row = tableBody.insertRow();
                 
-                // Add cells for the desired columns
+                // Map the data fields to the table cells (ensuring all fields are included)
+                // Used toFixed(0) for followers and Popularity for cleaner display of large numbers
                 row.insertCell().textContent = track.track_name;
                 row.insertCell().textContent = track.artist_name;
-                // Display only the first genre for a clean look, or 'N/A'
-                row.insertCell().textContent = track.artist_genres ? track.artist_genres.split(', ')[0] : 'N/A';
+                row.insertCell().textContent = track.track_id;
                 row.insertCell().textContent = track.track_popularity;
+                row.insertCell().textContent = track.artist_popularity;
+                row.insertCell().textContent = track.explicit;
+                row.insertCell().textContent = track.album_type;
                 row.insertCell().textContent = track.track_duration_min.toFixed(2);
+                row.insertCell().textContent = track.artist_followers.toLocaleString();
+                row.insertCell().textContent = track.artist_genres || 'N/A'; // Use 'N/A' for null genres
             });
         }
 
-        // 5. THE RESET FUNCTIONALITY (Clears everything)
+        // 5. THE RESET FUNCTIONALITY
         function resetFilters() {
             // Reset the select elements to the default "All" option
             artistFilter.value = ""; 
@@ -170,3 +179,4 @@
     </script>
 </body>
 </html>
+
