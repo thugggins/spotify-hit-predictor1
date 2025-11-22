@@ -16,8 +16,9 @@ Two Operation Modes:
 
 - Track Selection Mode: Select a specific track from the embedded dataset. The track's features (such as Artist Popularity, Duration, Album Type) are loaded and locked for prediction.
 
-- Custom Mode: Select "Custom Track" to unlock the feature inputs, allowing you to manually set the Track Duration and Artist Popularity score for a hypothetical song.
-How the Model Works (Simulated Logic)
+- Custom Track Mode: Select the "Custom Track" option in the Track dropdown to run a prediction based on the features currently displayed (Artist Popularity, Track Duration, etc.), allowing you to evaluate a hypothetical combination of selected Artist and Genre features.
+
+Real-Time Feedback: The predicted popularity score is displayed visually, along with a message summarizing the predicted success level (e.g., "Mega Hit Potential" or "Moderate Success").
 
 Data & Transparency
 -------------------------------------
@@ -51,4 +52,5 @@ Download/Clone: Get the index.html file onto your local machine.
 Open in Browser: Simply double-click the index.html file, or open it directly in any modern web browser.
 
 Interact: Start selecting artists, genres, or custom tracks to see instant predictions.
+
 
