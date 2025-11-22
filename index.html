@@ -1,589 +1,611 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Popularity Predictor (ML Demo)</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Custom styles for a dark, Spotify-inspired theme */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap');
-        :root {
-            --spotify-green: #1DB954;
-            --dark-background: #121212;
-            --card-background: #1F1F1F;
-            --text-light: #FFFFFF;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--dark-background);
-        }
-        .predictor-card {
-            background-color: var(--card-background);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        /* Custom focus color */
-        input:focus, select:focus {
-            border-color: var(--spotify-green) !important;
-            box-shadow: 0 0 0 1px var(--spotify-green) !important;
-        }
-        /* Style for read-only/locked inputs */
-        .input-locked {
-            background-color: #303030; /* Darker background for locked state */
-            color: #A0A0A0; /* Grayed out text */
-            cursor: not-allowed;
-        }
-        /* Hide number input spinners */
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Popularity Predictor (ML Demo)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a dark, Spotify-inspired theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap');
+        :root {
+            --spotify-green: #1DB954;
+            --dark-background: #121212;
+            --card-background: #1F1F1F;
+            --text-light: #FFFFFF;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-background);
+        }
+        .predictor-card {
+            background-color: var(--card-background);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Custom focus color */
+        input:focus, select:focus {
+            border-color: var(--spotify-green) !important;
+            box-shadow: 0 0 0 1px var(--spotify-green) !important;
+        }
+        /* Style for read-only/locked inputs */
+        .input-locked {
+            background-color: #303030; /* Darker background for locked state */
+            color: #A0A0A0; /* Grayed out text */
+            cursor: not-allowed;
+        }
+        /* Hide number input spinners */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
-        <div class="predictor-card w-full max-w-lg shadow-2xl rounded-xl p-6 md:p-10 space-y-6">
+    <div class="predictor-card w-full max-w-lg shadow-2xl rounded-xl p-6 md:p-10 space-y-6">
 
-        <h1 class="text-3xl font-extrabold text-center text-white">
-            <span class="text-green-400">Spotify</span> Hit Predictor
-        </h1>
-        <p id="ready-message" class="text-center text-gray-400 text-sm">
-            Select an Artist, Genre, and optionally a Track for prediction.
-        </p>
-        
-                <div class="space-y-4">
+        <h1 class="text-3xl font-extrabold text-center text-white">
+            <span class="text-green-400">Spotify</span> Hit Predictor
+        </h1>
+        <p id="ready-message" class="text-center text-gray-400 text-sm">
+            Select an Artist, Genre, and optionally a Track for prediction.
+        </p>
+        
+        <div class="space-y-4">
 
-                        <div class="grid grid-cols-2 gap-4">
-                                <div>
-                    <label for="artist-select" class="block text-sm font-medium text-gray-300">Select Artist</label>
-                    <select id="artist-select" onchange="handleArtistChange()"
-                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                                            </select>
-                </div>
-                
-                                <div>
-                    <label for="genre-select" class="block text-sm font-medium text-gray-300">Select Genre</label>
-                    <select id="genre-select" onchange="handleGenreChange()"
-                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                                            </select>
-                </div>
-            </div>
-            
-                        <div>
-                <label for="track-select" class="block text-sm font-medium text-gray-300">Select Track</label>
-                <select id="track-select" onchange="handleTrackChange()"
-                        class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
-                                    </select>
-            </div>
-
-
-                        <div>
-                <label for="album-type-display" class="block text-sm font-medium text-gray-300">Album Type</label>
-                <input type="text" id="album-type-display" value="" readonly
-                       class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked">
-                <p class="text-xs text-gray-500 mt-1">Single status is a feature for the model.</p>
-            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="artist-select" class="block text-sm font-medium text-gray-300">Select Artist</label>
+                    <select id="artist-select" onchange="handleArtistChange()"
+                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                        </select>
+                </div>
+                
+                <div>
+                    <label for="genre-select" class="block text-sm font-medium text-gray-300">Select Genre</label>
+                    <select id="genre-select" onchange="handleGenreChange()"
+                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                        </select>
+                </div>
+            </div>
+            
+            <div>
+                <label for="track-select" class="block text-sm font-medium text-gray-300">Select Track</label>
+                <select id="track-select" onchange="handleTrackChange()"
+                        class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                    </select>
+            </div>
 
 
-                        <div class="grid grid-cols-2 gap-4">
-                                <div>
-                    <label for="artist-followers" class="block text-sm font-medium text-gray-300">Followers</label>
-                    <input type="text" id="artist-followers" value="" readonly
-                           class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked text-center">
-                </div>
+            <div>
+                <label for="album-type-display" class="block text-sm font-medium text-gray-300">Album Type</label>
+                <input type="text" id="album-type-display" value="" readonly
+                       class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked">
+                <p class="text-xs text-gray-500 mt-1">Single status is a feature for the model.</p>
+            </div>
 
-                                <div>
-                    <label for="artist-pop" class="block text-sm font-medium text-gray-300">Artist Popularity</label>
-                    <input type="number" id="artist-pop" min="0" max="100" value=""
-                           class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150 text-center">
-                </div>
-            </div>
 
-                        <div>
-                <label for="duration-min" class="block text-sm font-medium text-gray-300">Track Duration (Minutes)</label>
-                <input type="number" id="duration-min" step="0.01" min="0.5" value=""
-                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
-            </div>
-            
-                        <div>
-                <label for="explicit-status" class="block text-sm font-medium text-gray-300">Explicit Status</label>
-                <input type="text" id="explicit-status" value="" readonly
-                       class="mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold">
-            </div>
-            
-        </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="artist-followers" class="block text-sm font-medium text-gray-300">Followers</label>
+                    <input type="text" id="artist-followers" value="" readonly
+                           class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked text-center">
+                </div>
 
-                <div class="grid grid-cols-3 gap-4">
-            <button onclick="handleReset()"
-                    class="col-span-1 py-3 mt-4 text-sm font-bold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-500 transition duration-300 ease-in-out transform hover:scale-[1.01]"
-                    id="reset-button">
-                Reset
-            </button>
-            <button onclick="handlePrediction()"
-                    class="col-span-2 py-3 mt-4 text-lg font-bold text-black bg-green-500 rounded-lg shadow-md hover:bg-green-400 transition duration-300 ease-in-out transform hover:scale-[1.01]"
-                    id="predict-button">
-                Predict Popularity
-            </button>
-        </div>
+                <div>
+                    <label for="artist-pop" class="block text-sm font-medium text-gray-300">Artist Popularity</label>
+                    <input type="number" id="artist-pop" min="0" max="100" value=""
+                           class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150 text-center">
+                </div>
+            </div>
 
-                <div class="pt-6 border-t border-gray-700 space-y-3">
-            <p class="text-center text-gray-300 font-medium">Predicted Popularity Score (0-100) for:</p>
-            <p id="track-artist-summary" class="text-center text-xl font-bold text-white">
-                ---
-            </p>
-            <div class="flex justify-center items-center">
-                <div id="prediction-output" 
-                     class="text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl">
-                    --
-                </div>
-            </div>
-            <p id="prediction-message" class="text-center text-lg font-semibold text-gray-400">Click "Predict Popularity" to calculate the score.</p>
-        </div>
+            <div>
+                <label for="duration-min" class="block text-sm font-medium text-gray-300">Track Duration (Minutes)</label>
+                <input type="number" id="duration-min" step="0.01" min="0.5" value=""
+                        class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
+            </div>
+            
+            <div>
+                <label for="explicit-status" class="block text-sm font-medium text-gray-300">Explicit Status</label>
+                <input type="text" id="explicit-status" value="" readonly
+                        class="mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold">
+            </div>
+            
+        </div>
 
-                <div class="mt-6 p-4 text-xs bg-gray-800 rounded-lg text-gray-400">
-            <h3 class="font-bold text-gray-200 mb-1">Model Details (Simulated Logistic Regression)</h3>
-            <p>This demo uses a simplified model based on the following weights:</p>
-            <ul class="list-disc list-inside ml-2 mt-1 space-y-0.5">
-                <li><span class="font-mono text-green-300">Bias:</span> 35.0 (Base Popularity)</li>
-                <li><span class="font-mono text-green-300">Artist Popularity Weight:</span> +0.8 (Strong positive influence)</li>
-                <li><span class="font-mono text-green-300">Duration Weight:</span> -1.5 (Small penalty for non-standard duration)</li>
-                <li><span class="font-mono text-green-300">Single Status Weight:</span> +5.0 (Singles generally receive more promotional focus than album tracks)</li>
-            </ul>
-        </div>
-        
-    </div>
+        <div class="grid grid-cols-3 gap-4">
+            <button onclick="handleReset()"
+                    class="col-span-1 py-3 mt-4 text-sm font-bold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-500 transition duration-300 ease-in-out transform hover:scale-[1.01]"
+                    id="reset-button">
+                Reset
+            </button>
+            <button onclick="handlePrediction()"
+                    class="col-span-2 py-3 mt-4 text-lg font-bold text-black bg-green-500 rounded-lg shadow-md hover:bg-green-400 transition duration-300 ease-in-out transform hover:scale-[1.01]"
+                    id="predict-button">
+                Predict Popularity
+            </button>
+        </div>
 
-    <script>
-        // --- DATA LOADED FROM ATTACHED CSV ---
-        // Added track_popularity (actual score) to the data for display and better demo contrast.
-        const SAMPLE_TRACK_DATA = [{"track_id":"3EJS5LyekDim1Tf5rBFmZl","track_name":"Trippy Mane (ft. Project Pat)","track_popularity":0,"artist_name":"Diplo","artist_followers":2812821,"explicit":"TRUE","album_type":"album","track_duration_min":1.55,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"1oQW6G2ZiwMuHqlPpP27DB","track_name":"OMG!","track_popularity":0,"artist_name":"Yelawolf","artist_followers":2363438,"explicit":"TRUE","album_type":"single","track_duration_min":3.07,"artist_popularity":64,"artist_genres":"country hip hop, southern hip hop"},{"track_id":"7mdkjzoIYlf1rx9EtBpGmU","track_name":"Hard 2 Find","track_popularity":4,"artist_name":"Riff Raff","artist_followers":193302,"explicit":"TRUE","album_type":"single","track_duration_min":2.55,"artist_popularity":48,"artist_genres":null},{"track_id":"67rW0Zl7oB3qEpD5YWWE5w","track_name":"Still Get Like That (ft. Project Pat & Starrah)","track_popularity":30,"artist_name":"Diplo","artist_followers":2813710,"explicit":"TRUE","album_type":"album","track_duration_min":1.69,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"15xptTfRBrjsppW0INUZjf","track_name":"ride me like a harley","track_popularity":0,"artist_name":"Rumelis","artist_followers":8682,"explicit":"TRUE","album_type":"single","track_duration_min":2.39,"artist_popularity":48,"artist_genres":"dark r&b"},{"track_id":"4ccpCcZYseq8VrPMK1EDs0","track_name":"BLEED","track_popularity":2,"artist_name":"Minzie","artist_followers":7218,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":46,"artist_genres":"dark r&b"},{"track_id":"3QoQ3HqXTAjgEl9LbNMbYp","track_name":"Te Procuro na Cidade","track_popularity":20,"artist_name":"AZERDK","artist_followers":1657,"explicit":"FALSE","album_type":"single","track_duration_min":4.12,"artist_popularity":30,"artist_genres":null},{"track_id":"1YEZbdT417SfolPQzaoHs2","track_name":"come closer","track_popularity":27,"artist_name":"Rumelis","artist_followers":8802,"explicit":"FALSE","album_type":"single","track_duration_min":2.53,"artist_popularity":49,"artist_genres":"dark r&b"},{"track_id":"4pZ949nFW5SurwzE0TSe7I","track_name":"Cupido Vagabundo","track_popularity":16,"artist_name":"Toni dos Anjos","artist_followers":475,"explicit":"FALSE","album_type":"single","track_duration_min":2.92,"artist_popularity":6,"artist_genres":null},{"track_id":"0L0LgwFZ7UtBnRNQvSBty6","track_name":"LET\u2019S GO!","track_popularity":33,"artist_name":"PsychoYP","artist_followers":154802,"explicit":"TRUE","album_type":"single","track_duration_min":2.4,"artist_popularity":48,"artist_genres":"nigerian drill, alt\u00e9, afro adura, afrobeats, afrobeat, afroswing"},{"track_id":"5mfAZwEr4jAVDnSY0HHuyH","track_name":"Stray","track_popularity":30,"artist_name":"What Matters The Most","artist_followers":814,"explicit":"FALSE","album_type":"single","track_duration_min":2.49,"artist_popularity":25,"artist_genres":null},{"track_id":"4V1Sh9Y2z6e8HpzNOet5rC","track_name":"PAPARAZZI ARRIVE - English Ver.","track_popularity":48,"artist_name":"A2O","artist_followers":13826,"explicit":"FALSE","album_type":"album","track_duration_min":2.89,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"0NZKfcua68wuZePhjp8N2I","track_name":"Root of all Evil","track_popularity":65,"artist_name":"Daniel Caesar","artist_followers":11137714,"explicit":"FALSE","album_type":"album","track_duration_min":4.41,"artist_popularity":85,"artist_genres":null},{"track_id":"6zFWxD9hkOPAIlgWAGyQGQ","track_name":"Let\u2019s Go!!","track_popularity":0,"artist_name":"Ovi Jozi","artist_followers":3567,"explicit":"TRUE","album_type":"single","track_duration_min":2.05,"artist_popularity":17,"artist_genres":null},{"track_id":"66F6YyfnWy6cNc6bd3zl2C","track_name":"MELODY - CHENYU & SHIJIE & QUCHANG","track_popularity":27,"artist_name":"A2O","artist_followers":13590,"explicit":"FALSE","album_type":"album","track_duration_min":4.25,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"22c6Yop5YVEAhw8UG6O1W1","track_name":"My Muse","track_popularity":67,"artist_name":"Leon Thomas","artist_followers":735818,"explicit":"TRUE","album_type":"single","track_duration_min":2.75,"artist_popularity":74,"artist_genres":null},{"track_id":"0SoYN9bRGPj7qV6loQKCTO","track_name":"A Real Good Bad One","track_popularity":31,"artist_name":"Joe Hermes","artist_followers":1518,"explicit":"FALSE","album_type":"single","track_duration_min":2.73,"artist_popularity":23,"artist_genres":null},{"track_id":"19A7srqQSXoW14muGyiHjg","track_name":"BOSS - English Ver.","track_popularity":33,"artist_name":"A2O","artist_followers":13826,"explicit":"FALSE","album_type":"album","track_duration_min":2.92,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"0XQQpq855N5rnUsFBXo2ml","track_name":"Bridges","track_popularity":11,"artist_name":"Scarlett Butler","artist_followers":364,"explicit":"FALSE","album_type":"single","track_duration_min":2.91,"artist_popularity":3,"artist_genres":null},{"track_id":"0nBPI5KxKOeOtr24sdGpE6","track_name":"Can't Go Back","track_popularity":30,"artist_name":"LEROCQUE","artist_followers":13770,"explicit":"FALSE","album_type":"single","track_duration_min":2.43,"artist_popularity":23,"artist_genres":null},{"track_id":"2aMZEJZwWouRzOw2aSfKV9","track_name":"Deeply Still","track_popularity":35,"artist_name":"Xander Ward","artist_followers":729,"explicit":"FALSE","album_type":"single","track_duration_min":2.91,"artist_popularity":35,"artist_genres":null},{"track_id":"2zzjpwG8wu3skr08m7rM6e","track_name":"Eggshell Tap Dancer","track_popularity":52,"artist_name":"The All-American Rejects","artist_followers":3134186,"explicit":"FALSE","album_type":"single","track_duration_min":3.78,"artist_popularity":67,"artist_genres":"pop punk, emo"},{"track_id":"2MbsC60IxeyJNVRRgeqH4w","track_name":"Eyes on You","track_popularity":22,"artist_name":"Smith & Liddle","artist_followers":543,"explicit":"FALSE","album_type":"single","track_duration_min":4.26,"artist_popularity":17,"artist_genres":null},{"track_id":"2Zq3Trov36G0TtrUt4ZklL","track_name":"superstar","track_popularity":59,"artist_name":"Artemas","artist_followers":1378935,"explicit":"TRUE","album_type":"album","track_duration_min":2.82,"artist_popularity":74,"artist_genres":null},{"track_id":"7rdHxPQimXkOcmUmsfGhxY","track_name":"Trim","track_popularity":1,"artist_name":"YUNG ALPO","artist_followers":166,"explicit":"TRUE","album_type":"single","track_duration_min":2.62,"artist_popularity":24,"artist_genres":null},{"track_id":"2H6cMXx0Kmj6XlbMx4BYi9","track_name":"Trip","track_popularity":32,"artist_name":"A2O","artist_followers":13826,"explicit":"FALSE","album_type":"album","track_duration_min":3.26,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"6DIrsJFPypT0Z3emDKnXYd","track_name":"HEARTBREAK SZN","track_popularity":32,"artist_name":"PRAX","artist_followers":1982,"explicit":"TRUE","album_type":"single","track_duration_min":2.89,"artist_popularity":23,"artist_genres":null},{"track_id":"05aYqGC8NNxr4jiHbQXLG3","track_name":"Higher Vibration","track_popularity":35,"artist_name":"Mark II","artist_followers":722,"explicit":"FALSE","album_type":"single","track_duration_min":2.4,"artist_popularity":25,"artist_genres":null},{"track_id":"0C42YiaJQyb0OExJ89bRbs","track_name":"Hold On (We Are Going Home)","track_popularity":34,"artist_name":"Suark","artist_followers":1496,"explicit":"FALSE","album_type":"single","track_duration_min":3.58,"artist_popularity":32,"artist_genres":null},{"track_id":"1yLkASt2rIp9W5t3NuZrwQ","track_name":"Kay","track_popularity":2,"artist_name":"Vince Bello","artist_followers":84,"explicit":"FALSE","album_type":"single","track_duration_min":3.85,"artist_popularity":6,"artist_genres":null},{"track_id":"2zLnwikuCxJwMkEI8tqDN4","track_name":"you never really cared","track_popularity":31,"artist_name":"Anna Marx","artist_followers":1693,"explicit":"FALSE","album_type":"single","track_duration_min":2.37,"artist_popularity":34,"artist_genres":null},{"track_id":"0kWQFzHzEPtvrKnwngvWyb","track_name":"Master of the Kill","track_popularity":42,"artist_name":"Ana Shine","artist_followers":27570,"explicit":"FALSE","album_type":"single","track_duration_min":3.25,"artist_popularity":45,"artist_genres":null},{"track_id":"5NWYu2pYfLGu3iQB08RC4m","track_name":"Fool For You","track_popularity":25,"artist_name":"Stray Currents","artist_followers":1073,"explicit":"FALSE","album_type":"single","track_duration_min":3.07,"artist_popularity":20,"artist_genres":null},{"track_id":"4cVw1IeHrFuVS58Glolglb","track_name":"blonde eyes","track_popularity":25,"artist_name":"Sopperior","artist_followers":2891,"explicit":"FALSE","album_type":"single","track_duration_min":2.41,"artist_popularity":30,"artist_genres":null},{"track_id":"31lp34zEvY603Xjkz2hrOo","track_name":"limerence","track_popularity":13,"artist_name":"Sopperior","artist_followers":2896,"explicit":"FALSE","album_type":"single","track_duration_min":1.48,"artist_popularity":30,"artist_genres":null},{"track_id":"1nNgDKWWX9MU9cp5FrHXRN","track_name":"Love Crazy - Stash Konig Remix","track_popularity":31,"artist_name":"MisterNez","artist_followers":200,"explicit":"FALSE","album_type":"single","track_duration_min":3.26,"artist_popularity":18,"artist_genres":null},{"track_id":"4ljqKsDyZzicNpBIMvDaZ5","track_name":"One More Time","track_popularity":6,"artist_name":"Fraser Stott","artist_followers":119,"explicit":"FALSE","album_type":"album","track_duration_min":3.94,"artist_popularity":13,"artist_genres":null},{"track_id":"5hw7dvgBRLvlCiALWwujYz","track_name":"Nectar - B-Rain Remix","track_popularity":29,"artist_name":"Senhit","artist_followers":54636,"explicit":"FALSE","album_type":"single","track_duration_min":2.95,"artist_popularity":27,"artist_genres":null},{"track_id":"6OTDBDVaK18xlne9rlGQok","track_name":"No Glory","track_popularity":52,"artist_name":"Besomorph","artist_followers":146944,"explicit":"FALSE","album_type":"single","track_duration_min":2.37,"artist_popularity":58,"artist_genres":"slap house"},{"track_id":"1NXbNEAcPvY5G1xvfN57aA","track_name":"Dracula","track_popularity":80,"artist_name":"Tame Impala","artist_followers":9509731,"explicit":"TRUE","album_type":"album","track_duration_min":3.42,"artist_popularity":84,"artist_genres":"neo-psychedelic, indie"},{"track_id":"6gRNWnK8b8BVfzrF65HGcf","track_name":"PSYCHWARD (with WesGhost ft. Project Pat)","track_popularity":51,"artist_name":"Diplo","artist_followers":2812337,"explicit":"TRUE","album_type":"single","track_duration_min":2.88,"artist_popularity":77,"artist_genres":"moombahton"},{"track_id":"1e73KA7YWgIS9cLszZJRTu","track_name":"Where Have You Been","track_popularity":38,"artist_name":"Ken","artist_followers":7219,"explicit":"FALSE","album_type":"single","track_duration_min":2.08,"artist_popularity":50,"artist_genres":"hypertechno"},{"track_id":"44NbFZ0gEZ4U0LMMsHWyb3","track_name":"Great Tomorrow","track_popularity":3,"artist_name":"Kxng Leó","artist_followers":177,"explicit":"FALSE","album_type":"single","track_duration_min":2.21,"artist_popularity":1,"artist_genres":null},{"track_id":"05RK4klU7S2Jm50ONIjyM4","track_name":"Hearts Grow Cold (Saint Noël) [feat. Olivia Cadenza]","track_popularity":50,"artist_name":"Kayote","artist_followers":19306,"explicit":"FALSE","album_type":"single","track_duration_min":2.65,"artist_popularity":49,"artist_genres":null},{"track_id":"0Oriikd4ETp5qmzek6ZUD5","track_name":"Talk To You (ft. Elton John)","track_popularity":72,"artist_name":"Sam Fender","artist_followers":1204977,"explicit":"TRUE","album_type":"single","track_duration_min":5.28,"artist_popularity":73,"artist_genres":null},{"track_id":"5jw5yNpSTxdBAr1AV3N96s","track_name":"The Way I Am Now","track_popularity":25,"artist_name":"Lila Holler","artist_followers":1068,"explicit":"FALSE","album_type":"single","track_duration_min":3.77,"artist_popularity":17,"artist_genres":null},{"track_id":"0lRnxwJeUOxwEvWMw4uQKj","track_name":"Think About Us","track_popularity":68,"artist_name":"Sonny Fodera","artist_followers":306842,"explicit":"FALSE","album_type":"single","track_duration_min":2.96,"artist_popularity":66,"artist_genres":"house"},{"track_id":"6q43CVVE0VXEWlDjPdgH0c","track_name":"Trophy Wife","track_popularity":32,"artist_name":"Annalise Azadian","artist_followers":5701,"explicit":"TRUE","album_type":"single","track_duration_min":2.86,"artist_popularity":31,"artist_genres":null},{"track_id":"0vXBmU9Zus9ZtbR4kvZAjH","track_name":"baby can you sin for me","track_popularity":52,"artist_name":"Ex Habit","artist_followers":130408,"explicit":"FALSE","album_type":"single","track_duration_min":2.69,"artist_popularity":59,"artist_genres":"dark r&b"},{"track_id":"5UDCl2GNB6gT4ataiXTIGH","track_name":"Wild Side","track_popularity":48,"artist_name":"Poul","artist_followers":1161,"explicit":"FALSE","album_type":"single","track_duration_min":2.5,"artist_popularity":53,"artist_genres":null},{"track_id":"0dtNBn7Uww8lHFTs6mittj","track_name":"Amal","track_popularity":38,"artist_name":"Abeer Nehme","artist_followers":247771,"explicit":"FALSE","album_type":"single","track_duration_min":3.88,"artist_popularity":50,"artist_genres":"sholawat, khaleeji"},{"track_id":"2OZVskV28xxJjjhQqKTLSg","track_name":"PIXELATED KISSES","track_popularity":88,"artist_name":"Joji","artist_followers":10638942,"explicit":"TRUE","album_type":"single","track_duration_min":1.84,"artist_popularity":81,"artist_genres":null},{"track_id":"27sGm7McOlhSQ1szOJlpt8","track_name":"MEGAFAUNA","track_popularity":24,"artist_name":"Stanza","artist_followers":218,"explicit":"TRUE","album_type":"single","track_duration_min":2.87,"artist_popularity":10,"artist_genres":null},{"track_id":"6wi4GsP24EbQK8xrFl9tqI","track_name":"2nd To Me","track_popularity":31,"artist_name":"Christian Kennedy","artist_followers":297,"explicit":"TRUE","album_type":"single","track_duration_min":3.26,"artist_popularity":14,"artist_genres":null},{"track_id":"7Lo6USa0PiDkwSL3SkohSi","track_name":"Leavin","track_popularity":70,"artist_name":"Rod Wave","artist_followers":9673984,"explicit":"TRUE","album_type":"single","track_duration_min":2.81,"artist_popularity":76,"artist_genres":null},{"track_id":"3Dy4xsff7c0fRaTJpA54yd","track_name":"Gone Gone Gone","track_popularity":79,"artist_name":"David Guetta","artist_followers":27141717,"explicit":"FALSE","album_type":"single","track_duration_min":3.3,"artist_popularity":87,"artist_genres":"edm"},{"track_id":"6t62npoUwUGjrwIawdgwA5","track_name":"Goodbye For Now","track_popularity":33,"artist_name":"Olivia Cox","artist_followers":1263,"explicit":"FALSE","album_type":"single","track_duration_min":3.5,"artist_popularity":18,"artist_genres":"hipdut"},{"track_id":"2uHi2Fc38bs1keR72wTpwd","track_name":"Here and Now (Where I Wanna Be)","track_popularity":35,"artist_name":"Briezman","artist_followers":445,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":23,"artist_genres":"big room"},{"track_id":"3oKtvkoervQjzXyh1OMHHq","track_name":"Hold My Hand","track_popularity":35,"artist_name":"TAMMO","artist_followers":290,"explicit":"FALSE","album_type":"single","track_duration_min":4.4,"artist_popularity":19,"artist_genres":null},{"track_id":"4nds6JYKbzMdpXwuINhSEZ","track_name":"Part of Me","track_popularity":75,"artist_name":"A Boogie Wit da Hoodie","artist_followers":8986062,"explicit":"TRUE","album_type":"single","track_duration_min":2.78,"artist_popularity":77,"artist_genres":"melodic rap"},{"track_id":"2n3qIOygTL44mYyPIqlH5q","track_name":"Run For The Hills","track_popularity":37,"artist_name":"Jason Charles Miller","artist_followers":17999,"explicit":"FALSE","album_type":"single","track_duration_min":3.12,"artist_popularity":43,"artist_genres":null},{"track_id":"0n2QFaU59wkNJW0ruoaGeY","track_name":"So Far","track_popularity":28,"artist_name":"Visibly True","artist_followers":114,"explicit":"FALSE","album_type":"single","track_duration_min":3.07,"artist_popularity":20,"artist_genres":null},{"track_id":"6hjbNbbRdTCIW9qcZ8OA7t","track_name":"Something Like This","track_popularity":33,"artist_name":"The Haygoods","artist_followers":7785,"explicit":"FALSE","album_type":"single","track_duration_min":2.22,"artist_popularity":20,"artist_genres":null},{"track_id":"1DwscornXpj8fmOmYVlqZt","track_name":"Stateside + Zara Larsson","track_popularity":74,"artist_name":"PinkPantheress","artist_followers":4761364,"explicit":"FALSE","album_type":"album","track_duration_min":3.07,"artist_popularity":78,"artist_genres":"bedroom pop"},{"track_id":"2qtQauWqPaGHrmrXbDa35k","track_name":"Constellations","track_popularity":68,"artist_name":"Ian Asher","artist_followers":223449,"explicit":"FALSE","album_type":"single","track_duration_min":2.73,"artist_popularity":70,"artist_genres":null},{"track_id":"0l72HGRQkAR0imHxvpLi8a","track_name":"Die On This Hill","track_popularity":76,"artist_name":"SIENNA SPIRO","artist_followers":182377,"explicit":"FALSE","album_type":"single","track_duration_min":3.61,"artist_popularity":66,"artist_genres":null},{"track_id":"4idqAxBL2zVyfyMhi8QSZK","track_name":"Distance Of Living","track_popularity":35,"artist_name":"Aresty.","artist_followers":4,"explicit":"FALSE","album_type":"album","track_duration_min":2.72,"artist_popularity":17,"artist_genres":null},{"track_id":"4WFfPxJv1KRekG6mxn837K","track_name":"EYES CLOSED (with ZAYN)","track_popularity":88,"artist_name":"JISOO","artist_followers":7282227,"explicit":"FALSE","album_type":"single","track_duration_min":3.02,"artist_popularity":73,"artist_genres":"k-pop"},{"track_id":"6I65Y2uL3LrvFuBS5LNVZa","track_name":"Getting Down","track_popularity":30,"artist_name":"gigi","artist_followers":5,"explicit":"FALSE","album_type":"single","track_duration_min":3.13,"artist_popularity":13,"artist_genres":null},{"track_id":"0fOblXmOu0vHm0fa2RezCC","track_name":"Alarm","track_popularity":18,"artist_name":"Millo","artist_followers":429,"explicit":"FALSE","album_type":"single","track_duration_min":3.02,"artist_popularity":5,"artist_genres":null},{"track_id":"1heaOeArQtwtQKRK0gJe42","track_name":"All Night Long","track_popularity":39,"artist_name":"KOLBEIN","artist_followers":631,"explicit":"FALSE","album_type":"single","track_duration_min":2.75,"artist_popularity":28,"artist_genres":"hypertechno, melbourne bounce"},{"track_id":"3Du1WPZLhETDT6Jr4eumkU","track_name":"ANYMORE","track_popularity":18,"artist_name":"ASH7ON","artist_followers":308,"explicit":"TRUE","album_type":"single","track_duration_min":2.91,"artist_popularity":7,"artist_genres":null},{"track_id":"3m2dgCQagVWkSha04cZn23","track_name":"Bad Boy","track_popularity":60,"artist_name":"KROMA","artist_followers":11283,"explicit":"FALSE","album_type":"single","track_duration_min":2.45,"artist_popularity":54,"artist_genres":"hard techno"},{"track_id":"2omFbch4mNZo3ksaQeX78X","track_name":"Break Out","track_popularity":39,"artist_name":"zukrassverliebt","artist_followers":435,"explicit":"FALSE","album_type":"single","track_duration_min":3.2,"artist_popularity":24,"artist_genres":null},{"track_id":"5LlDzb8dY5h4npkWKVmjT5","track_name":"Tropical Vacation","track_popularity":40,"artist_name":"Riff Raff","artist_followers":193279,"explicit":"FALSE","album_type":"single","track_duration_min":2.92,"artist_popularity":48,"artist_genres":null},{"track_id":"4J1B7f8dgMWAcAHEm6Mvi8","track_name":"Chasing the Day","track_popularity":51,"artist_name":"TIMBER","artist_followers":37,"explicit":"FALSE","album_type":"single","track_duration_min":2.63,"artist_popularity":32,"artist_genres":null},{"track_id":"0jPkYjkGxwWMsRaTQbhV0x","track_name":"Used To Love","track_popularity":35,"artist_name":"Maithili Raelle","artist_followers":2633,"explicit":"FALSE","album_type":"single","track_duration_min":2.21,"artist_popularity":19,"artist_genres":null},{"track_id":"7sgx2p6KPYPia5fowJNZzO","track_name":"TBB","track_popularity":31,"artist_name":"Sabir","artist_followers":435,"explicit":"TRUE","album_type":"single","track_duration_min":2.41,"artist_popularity":18,"artist_genres":null},{"track_id":"31TXxq8gfgYyrYClnYY48m","track_name":"The Fate of Ophelia","track_popularity":87,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.76,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"5eXgqtg3T8Av0m1FUaGHex","track_name":"The Life of a Showgirl (feat. Sabrina Carpenter)","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145489371,"explicit":"TRUE","album_type":"album","track_duration_min":4.02,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"7wT275baetTMjwGNanHAno","track_name":"The Serpent","track_popularity":53,"artist_name":"Besomorph","artist_followers":146969,"explicit":"FALSE","album_type":"single","track_duration_min":3.25,"artist_popularity":58,"artist_genres":"slap house"},{"track_id":"6r4DKBIre2t3kU3FYMhhbN","track_name":"The Way I Know","track_popularity":29,"artist_name":"Padre T\u00f3xico","artist_followers":13179,"explicit":"FALSE","album_type":"single","track_duration_min":2.15,"artist_popularity":26,"artist_genres":"jazz rap"},{"track_id":"52LucZg8sDnqlkwXL6E7uX","track_name":"Turn Back Time","track_popularity":25,"artist_name":"Orvyn Sol","artist_followers":48,"explicit":"FALSE","album_type":"single","track_duration_min":3.19,"artist_popularity":15,"artist_genres":null},{"track_id":"2fTj7u4KEt7JfWQw4Qgj2J","track_name":"Wait For You","track_popularity":42,"artist_name":"MEDZ","artist_followers":6199,"explicit":"FALSE","album_type":"single","track_duration_min":3.45,"artist_popularity":37,"artist_genres":"melodic bass, future bass"},{"track_id":"3gKR0BUqtDToXhqhTH7Opg","track_name":"Rare","track_popularity":39,"artist_name":"Edd Stark","artist_followers":405,"explicit":"TRUE","album_type":"single","track_duration_min":2.9,"artist_popularity":28,"artist_genres":"chicago drill"},{"track_id":"2sMrvqJHSHGZ6uKcWoSNvW","track_name":"Rock Your Body","track_popularity":28,"artist_name":"IV Tune","artist_followers":54,"explicit":"FALSE","album_type":"album","track_duration_min":2.81,"artist_popularity":11,"artist_genres":null},{"track_id":"62V2ZHslgQV98gH4AuVXnr","track_name":"Ruin The Friendship","track_popularity":92,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"FALSE","album_type":"album","track_duration_min":3.67,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"4DCyPp2B9vSmkPUkctFumT","track_name":"Monsters","track_popularity":38,"artist_name":"IAN SIZE","artist_followers":1844,"explicit":"TRUE","album_type":"single","track_duration_min":2.17,"artist_popularity":32,"artist_genres":"melodic bass, nightcore, bass music"},{"track_id":"3yWuTOYDztXjZxdE2cIRUa","track_name":"Opalite","track_popularity":97,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.92,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"1k2aDzjpZVZPA2N3mMLbWq","track_name":"High Or Die","track_popularity":39,"artist_name":"Beatline","artist_followers":475,"explicit":"FALSE","album_type":"single","track_duration_min":2.51,"artist_popularity":20,"artist_genres":"future house"},{"track_id":"4qmFC3Jz5aQ0erlk2OSi2X","track_name":"Honey","track_popularity":91,"artist_name":"Taylor Swift","artist_followers":145489371,"explicit":"TRUE","album_type":"album","track_duration_min":3.02,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"0P3GQuGbDqVP9ZMs19RcUa","track_name":"i don't need ur love","track_popularity":55,"artist_name":"Rumelis","artist_followers":8741,"explicit":"TRUE","album_type":"single","track_duration_min":2.23,"artist_popularity":49,"artist_genres":"dark r&b"},{"track_id":"29JrUHRJumKzVu5xeELYFV","track_name":"It's Giving","track_popularity":40,"artist_name":"Third Vibes","artist_followers":3776,"explicit":"FALSE","album_type":"single","track_duration_min":2.49,"artist_popularity":24,"artist_genres":null},{"track_id":"2x3mwb96B6TquRqMtbxUE1","track_name":"Actually Romantic","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"TRUE","album_type":"album","track_duration_min":2.72,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"1jVMR9A0OYA8nFynsTnQsx","track_name":"Broken Glass","track_popularity":32,"artist_name":"Phay","artist_followers":5344,"explicit":"TRUE","album_type":"single","track_duration_min":2.27,"artist_popularity":20,"artist_genres":null},{"track_id":"1appZ3c336FkPvCuywfmrs","track_name":"CANCELLED!","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"TRUE","album_type":"album","track_duration_min":3.52,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"2TEQvxxQabwLQMqWMg1qGu","track_name":"Wi$h Li$t","track_popularity":93,"artist_name":"Taylor Swift","artist_followers":145396321,"explicit":"TRUE","album_type":"album","track_duration_min":2.49,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"3V6Jc5Nqg15U9sH3O3e4rF","track_name":"Hurt","track_popularity":25,"artist_name":"Mark II","artist_followers":722,"explicit":"FALSE","album_type":"single","track_duration_min":3.2,"artist_popularity":25,"artist_genres":null},{"track_id":"01YQ3m0HkYlJ5qO51Jp95V","track_name":"Hate Me","track_popularity":36,"artist_name":"Medusa","artist_followers":1256,"explicit":"TRUE","album_type":"single","track_duration_min":2.49,"artist_popularity":22,"artist_genres":null},{"track_id":"7v9v84D9f7l88mB99p2g5i","track_name":"My Kind of Beautiful","track_popularity":56,"artist_name":"The All-American Rejects","artist_followers":3134186,"explicit":"FALSE","album_type":"single","track_duration_min":2.84,"artist_popularity":67,"artist_genres":"pop punk, emo"},{"track_id":"02M34y2G16rU61Jt0xM08r","track_name":"Cursed","track_popularity":50,"artist_name":"Ex Habit","artist_followers":130408,"explicit":"FALSE","album_type":"single","track_duration_min":2.22,"artist_popularity":59,"artist_genres":"dark r&b"},{"track_id":"67K9uHlC48L99uR1Y4q7s5","track_name":"I'll Be There","track_popularity":39,"artist_name":"The Haygoods","artist_followers":7785,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":20,"artist_genres":null},{"track_id":"7C4uXhEa359Y49bM9yVd5B","track_name":"Daydream","track_popularity":43,"artist_name":"Millo","artist_followers":429,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":5,"artist_genres":null},{"track_id":"08e31E05c3Y2fCq1t9f36p","track_name":"Never Let Go","track_popularity":25,"artist_name":"Tory James","artist_followers":32,"explicit":"FALSE","album_type":"single","track_duration_min":3.11,"artist_popularity":32,"artist_genres":null},{"track_id":"1b43n8oO24U5jT0Vz3xQ4B","track_name":"Lasting Forever","track_popularity":29,"artist_name":"Tory James","artist_followers":32,"explicit":"FALSE","album_type":"single","track_duration_min":3.12,"artist_popularity":32,"artist_genres":null},{"track_id":"1c7gTj854q9l3pY52P5O65","track_name":"Too Good to Be True","track_popularity":37,"artist_name":"Anna Marx","artist_followers":1693,"explicit":"FALSE","album_type":"single","track_duration_min":2.42,"artist_popularity":34,"artist_genres":null},{"track_id":"5q0E5x29R34uY5l49H3k6f","track_name":"Good Days","track_popularity":28,"artist_name":"Anna Marx","artist_followers":1693,"explicit":"FALSE","album_type":"single","track_duration_min":2.74,"artist_popularity":34,"artist_genres":null},{"track_id":"3OnCnEWgy79xR5pr2kv4TX","track_name":"Misirlou","track_popularity":47,"artist_name":"Dick Dale","artist_followers":4137984,"explicit":"FALSE","album_type":"album","track_duration_min":2.26,"artist_popularity":41,"artist_genres":"surf rock"},{"track_id":"2QfiRTz5Yc8DdShCxG1tB2","track_name":"Johnny B. Goode","track_popularity":74,"artist_name":"Chuck Berry","artist_followers":2211249,"explicit":"FALSE","album_type":"album","track_duration_min":2.69,"artist_popularity":63,"artist_genres":"rockabilly, rock and roll"},{"track_id":"68FTJoO8edSpzuYb6lGW6P","track_name":"Saddle Tramp","track_popularity":58,"artist_name":"Marty Robbins","artist_followers":626733,"explicit":"FALSE","album_type":"album","track_duration_min":2.05,"artist_popularity":61,"artist_genres":"classic country, outlaw country"},{"track_id":"0AQquaENerGps8BQmbPw14","track_name":"Big Iron","track_popularity":71,"artist_name":"Marty Robbins","artist_followers":626733,"explicit":"FALSE","album_type":"album","track_duration_min":3.92,"artist_popularity":60,"artist_genres":"classic country, outlaw country"},{"track_id":"4f8hBeMXMvssn6HtHk16Ym","track_name":"The End of the World","track_popularity":66,"artist_name":"Skeeter Davis","artist_followers":1555547,"explicit":"FALSE","album_type":"album","track_duration_min":2.57,"artist_popularity":61,"artist_genres":"country pop, classic country, country, country gospel"},{"track_id":"2zKz2T2M2p9tXjJ3s75m5J","track_name":"Rave On","track_popularity":65,"artist_name":"Buddy Holly","artist_followers":3289053,"explicit":"FALSE","album_type":"album","track_duration_min":1.82,"artist_popularity":64,"artist_genres":"rockabilly, rock and roll"},{"track_id":"4Qk7b3K3bY90M0cTzM5qjP","track_name":"La Bamba","track_popularity":68,"artist_name":"Ritchie Valens","artist_followers":3845667,"explicit":"FALSE","album_type":"album","track_duration_min":2.16,"artist_popularity":60,"artist_genres":"chicano rock, rock and roll, r&b, soul, pop rock"},{"track_id":"5Yn99Kx0e7c5N1i30Q7tH3","track_name":"Blue Suede Shoes","track_popularity":77,"artist_name":"Elvis Presley","artist_followers":15170366,"explicit":"FALSE","album_type":"album","track_duration_min":2.01,"artist_popularity":80,"artist_genres":"rock and roll, rockabilly, country, gospel, rhythm and blues, blues, pop, adult contemporary"},{"track_id":"5n30wMh1pB2Wd4eA5c0lFh","track_name":"Hound Dog","track_popularity":76,"artist_name":"Elvis Presley","artist_followers":15170366,"explicit":"FALSE","album_type":"album","track_duration_min":2.17,"artist_popularity":80,"artist_genres":"rock and roll, rockabilly, country, gospel, rhythm and blues, blues, pop, adult contemporary"},{"track_id":"3HjK4jN0vWz8eG0b3Qz4kF","track_name":"Jailhouse Rock","track_popularity":73,"artist_name":"Elvis Presley","artist_followers":15170366,"explicit":"FALSE","album_type":"album","track_duration_min":2.36,"artist_popularity":80,"artist_genres":"rock and roll, rockabilly, country, gospel, rhythm and blues, blues, pop, adult contemporary"},{"track_id":"57W4t17H115d9y1tM90y8q","track_name":"Rock Around the Clock","track_popularity":64,"artist_name":"Bill Haley & His Comets","artist_followers":1495208,"explicit":"FALSE","album_type":"album","track_duration_min":2.09,"artist_popularity":59,"artist_genres":"rock and roll, rockabilly"},{"track_id":"0HkX4gWd8U45GZ2lJ2U28D","track_name":"Bye Bye Love","track_popularity":65,"artist_name":"The Everly Brothers","artist_followers":2786315,"explicit":"FALSE","album_type":"album","track_duration_min":2.09,"artist_popularity":63,"artist_genres":"country pop, rock and roll, country, folk, pop, adult contemporary"},{"track_id":"117Qd2s7z179N2q4JbK49u","track_name":"Wake Up Little Susie","track_popularity":64,"artist_name":"The Everly Brothers","artist_followers":2786315,"explicit":"FALSE","album_type":"album","track_duration_min":2.04,"artist_popularity":63,"artist_genres":"country pop, rock and roll, country, folk, pop, adult contemporary"},{"track_id":"0WnE342uWp6X89p4j68k6m","track_name":"All I Have To Do Is Dream","track_popularity":67,"artist_name":"The Everly Brothers","artist_followers":2786315,"explicit":"FALSE","album_type":"album","track_duration_min":2.23,"artist_popularity":63,"artist_genres":"country pop, rock and roll, country, folk, pop, adult contemporary"}]
-        
-        // Define the pre-trained coefficients (weights) for the Linear Regression model
-        const MODEL_COEFFICIENTS = {
-            bias: 35.0,
-            artistPopWeight: 0.8,
-            durationWeight: -1.5,
-            singleStatusWeight: 5.0 
-        };
+        <div class="pt-6 border-t border-gray-700 space-y-3">
+            <p class="text-center text-gray-300 font-medium">Predicted Popularity Score (0-100) for:</p>
+            <p id="track-artist-summary" class="text-center text-xl font-bold text-white">
+                ---
+            </p>
+            <div class="flex justify-center items-center">
+                <div id="prediction-output" 
+                     class="text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl">
+                    --
+                </div>
+            </div>
+            <p id="prediction-message" class="text-center text-lg font-semibold text-gray-400">Click "Predict Popularity" to calculate the score.</p>
+        </div>
 
-        // DOM elements for inputs
-        const artistSelect = document.getElementById('artist-select');
-        const genreSelect = document.getElementById('genre-select');
-        const trackSelect = document.getElementById('track-select'); 
-        const artistFollowersInput = document.getElementById('artist-followers');
-        const explicitStatusInput = document.getElementById('explicit-status');
-        const albumTypeDisplay = document.getElementById('album-type-display');
-        const artistPopInput = document.getElementById('artist-pop');
-        const durationMinInput = document.getElementById('duration-min');
-        const summaryElement = document.getElementById('track-artist-summary');
-        
-        // DOM elements for output (needed for resetting)
-        const outputElement = document.getElementById('prediction-output');
-        const messageElement = document.getElementById('prediction-message');
+        <div class="mt-6 p-4 text-xs bg-gray-800 rounded-lg text-gray-400">
+            <h3 class="font-bold text-gray-200 mb-1">Model Details (Simulated Logistic Regression)</h3>
+            <p>This demo uses a simplified model based on the following weights:</p>
+            <ul class="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                <li><span class="font-mono text-green-300">Bias:</span> 35.0 (Base Popularity)</li>
+                <li><span class="font-mono text-green-300">Artist Popularity Weight:</span> +0.8 (Strong positive influence)</li>
+                <li><span class="font-mono text-green-300">Duration Weight:</span> -1.5 (Small penalty for non-standard duration)</li>
+                <li><span class="font-mono text-green-300">Single Status Weight:</span> +5.0 (Singles generally receive more promotional focus than album tracks)</li>
+            </ul>
+        </div>
+        
+    </div>
 
-        // Initial default state
-        const DEFAULT_SELECTION = {
-            artist: 'Custom Artist',
-            genre: 'custom genre',
-            track: 'Custom Track', 
-            followers: 'N/A',
-            artist_popularity: 75,
-            duration_min: 3.0,
-            explicit: 'N/A',
-            album_type: 'single'
-        };
+    <script>
+        // --- HARDCODED SAMPLE DATA FOR PREVIEW ---
+        // DATA FROM 'spotify_data.csv' IS NOW EMBEDDED BELOW
+        const SAMPLE_TRACK_DATA = [{"track_id":"24XtnTroMCHL4FWUCODicV","track_name":"Murder Song (5, 4, 3, 2, 1) - Acoustic","track_popularity":37,"artist_name":"AURORA","artist_followers":4697897,"explicit":"FALSE","album_type":"album","track_duration_min":3.64,"artist_popularity":72,"artist_genres":"norwegian pop, art pop"},{"track_id":"0LpiKjWMfZTkPPHonlM8nB","track_name":"Yours Truly, Austin Post","track_popularity":55,"artist_name":"Post Malone","artist_followers":47716988,"explicit":"TRUE","album_type":"album","track_duration_min":3.65,"artist_popularity":85,"artist_genres":"pop, hip hop, country"},{"track_id":"78O33U6jbQtNiNfbkZudpd","track_name":"She Will","track_popularity":78,"artist_name":"Lil Wayne","artist_followers":17938214,"explicit":"TRUE","album_type":"album","track_duration_min":5.09,"artist_popularity":86,"artist_genres":"rap, hip hop"},{"track_id":"4hJNJqTcFptFRWfTjRpr3d","track_name":"Rose Colored Glasses","track_popularity":33,"artist_name":"America Allen","artist_followers":696,"explicit":"FALSE","album_type":"single","track_duration_min":3.57,"artist_popularity":20,"artist_genres":null},{"track_id":"5az2KaF9Xn0orTrkYYQzuj","track_name":"Moth","track_popularity":55,"artist_name":"HELLYEAH","artist_followers":764106,"explicit":"TRUE","album_type":"album","track_duration_min":4.85,"artist_popularity":49,"artist_genres":"groove metal, metal"},{"track_id":"5ZDKPFRZC6QlJpf8bCIXTs","track_name":"Dirt Road Anthem","track_popularity":74,"artist_name":"Jason Aldean","artist_followers":7054208,"explicit":"FALSE","album_type":"album","track_duration_min":3.82,"artist_popularity":75,"artist_genres":"country, acoustic country"},{"track_id":"2c7z5oRcPBbqRaBY2mLWcf","track_name":"NEW DROP","track_popularity":81,"artist_name":"Don Toliver","artist_followers":7473754,"explicit":"TRUE","album_type":"album","track_duration_min":3.62,"artist_popularity":85,"artist_genres":null},{"track_id":"1xFkcJjWuLlq8CIymwSTw9","track_name":"buzzkill","track_popularity":0,"artist_name":"MOTHICA","artist_followers":319352,"explicit":"TRUE","album_type":"single","track_duration_min":2.33,"artist_popularity":50,"artist_genres":null},{"track_id":"1j2KutCJvUZm3PWnxwms9v","track_name":"猛者どもの矜持","track_popularity":0,"artist_name":"Yoshihisa Hirano","artist_followers":62798,"explicit":"FALSE","album_type":"album","track_duration_min":1.82,"artist_popularity":50,"artist_genres":"anime, soundtrack"},{"track_id":"5HaKAODFS4Md49bVyYSp1y","track_name":"Meeting Bruce Wayne","track_popularity":36,"artist_name":"Hildur Guðnadóttir","artist_followers":152941,"explicit":"FALSE","album_type":"album","track_duration_min":4.59,"artist_popularity":46,"artist_genres":"drone, neoclassical"},{"track_id":"5kRgOJD7wN77OHjiGhkpjL","track_name":"Special Death","track_popularity":47,"artist_name":"Mirah","artist_followers":61215,"explicit":"FALSE","album_type":"album","track_duration_min":2.53,"artist_popularity":36,"artist_genres":null},{"track_id":"44sVQfPdCTGM5JLBRHUngc","track_name":"Come Back to Us","track_popularity":50,"artist_name":"Thomas Newman","artist_followers":277497,"explicit":"FALSE","album_type":"album","track_duration_min":5.65,"artist_popularity":60,"artist_genres":"soundtrack"},{"track_id":"1NrfEZrNm0Dq8ulfYMxwSc","track_name":"So Happy I Could Die","track_popularity":54,"artist_name":"Lady Gaga","artist_followers":42275793,"explicit":"FALSE","album_type":"album","track_duration_min":3.91,"artist_popularity":89,"artist_genres":"art pop, pop"},{"track_id":"6NFYeAeCn56i1LmRe2jN2U","track_name":"6 foot with my boots on","track_popularity":39,"artist_name":"Cwby","artist_followers":11588,"explicit":"FALSE","album_type":"single","track_duration_min":2.87,"artist_popularity":37,"artist_genres":null},{"track_id":"4cVw1IeHrFuVS58Glolglb","track_name":"blonde eyes","track_popularity":25,"artist_name":"Sopperior","artist_followers":2891,"explicit":"FALSE","album_type":"single","track_duration_min":2.41,"artist_popularity":30,"artist_genres":null},{"track_id":"39LmTF9RgyakzSYX8txrow","track_name":"imagine","track_popularity":69,"artist_name":"Ariana Grande","artist_followers":107401919,"explicit":"TRUE","album_type":"album","track_duration_min":3.53,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"3F5CgOj3wFlRv51JsHbxhe","track_name":"Jimmy Cooks (feat. 21 Savage)","track_popularity":80,"artist_name":"Drake","artist_followers":103039388,"explicit":"TRUE","album_type":"album","track_duration_min":3.63,"artist_popularity":95,"artist_genres":"rap"},{"track_id":"0hLViaNKbz0Q897bGpcyIS","track_name":"Another Love x Summertime Sadness - Sped Up","track_popularity":54,"artist_name":"Prasewon","artist_followers":10229,"explicit":"FALSE","album_type":"single","track_duration_min":2.11,"artist_popularity":38,"artist_genres":null},{"track_id":"2ipqXnu9eUA11VerUdiqjg","track_name":"5:3666","track_popularity":49,"artist_name":"mgk","artist_followers":5642365,"explicit":"TRUE","album_type":"album","track_duration_min":3.24,"artist_popularity":78,"artist_genres":null},{"track_id":"76FZM38RC8XaAjJ77CVTNe","track_name":"Into You","track_popularity":82,"artist_name":"Ariana Grande","artist_followers":107389514,"explicit":"FALSE","album_type":"album","track_duration_min":4.07,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"4kTliHBy7w2SOMtm8qMmOW","track_name":"I'm Ready","track_popularity":54,"artist_name":"Jaden","artist_followers":1943863,"explicit":"FALSE","album_type":"album","track_duration_min":3.16,"artist_popularity":63,"artist_genres":null},{"track_id":"6TLGmbTgp7hJ7jsDTTHRzw","track_name":"Notion","track_popularity":62,"artist_name":"Tash Sultana","artist_followers":1785857,"explicit":"FALSE","album_type":"album","track_duration_min":5.68,"artist_popularity":61,"artist_genres":null},{"track_id":"5ERfbppCElVkUmpBzK4Upz","track_name":"Wide Open Spaces","track_popularity":49,"artist_name":"Revline","artist_followers":505,"explicit":"FALSE","album_type":"album","track_duration_min":2.33,"artist_popularity":47,"artist_genres":"country"},{"track_id":"43o7PowhXdkjBlaGC6GIfg","track_name":"On The Bound","track_popularity":52,"artist_name":"Fiona Apple","artist_followers":1800092,"explicit":"FALSE","album_type":"album","track_duration_min":5.36,"artist_popularity":62,"artist_genres":"art pop"},{"track_id":"66F6YyfnWy6cNc6bd3zl2C","track_name":"MELODY - CHENYU & SHIJIE & QUCHANG","track_popularity":27,"artist_name":"A2O","artist_followers":13590,"explicit":"FALSE","album_type":"album","track_duration_min":4.25,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"2xLOMHjkOK8nzxJ4r6yOKR","track_name":"Birthday","track_popularity":61,"artist_name":"Katy Perry","artist_followers":38400585,"explicit":"FALSE","album_type":"album","track_duration_min":3.58,"artist_popularity":83,"artist_genres":"pop"},{"track_id":"5iHDEI2GIsx3YEa9OXPtRJ","track_name":"LoveGame","track_popularity":54,"artist_name":"Lady Gaga","artist_followers":42237551,"explicit":"FALSE","album_type":"album","track_duration_min":3.6,"artist_popularity":88,"artist_genres":"art pop, pop"},{"track_id":"3dl8bSF08LQfCf4T6CCksf","track_name":"On That Time","track_popularity":64,"artist_name":"Playboi Carti","artist_followers":15026799,"explicit":"TRUE","album_type":"album","track_duration_min":1.7,"artist_popularity":86,"artist_genres":"rage rap"},{"track_id":"2nMeu6UenVvwUktBCpLMK9","track_name":"Young And Beautiful","track_popularity":87,"artist_name":"Lana Del Rey","artist_followers":51773650,"explicit":"FALSE","album_type":"single","track_duration_min":3.93,"artist_popularity":88,"artist_genres":"alternative pop, indie pop"},{"track_id":"1yTuMc934yzN1PKjSIaspV","track_name":"Brave New Girl","track_popularity":40,"artist_name":"Britney Spears","artist_followers":17755451,"explicit":"FALSE","album_type":"album","track_duration_min":3.46,"artist_popularity":80,"artist_genres":"pop"},{"track_id":"5bWpoR6bbx1J49ZIrrpS11","track_name":"Rebel","track_popularity":29,"artist_name":"Kelsey Lu","artist_followers":149035,"explicit":"FALSE","album_type":"album","track_duration_min":3.73,"artist_popularity":40,"artist_genres":"alternative r&b, art pop"},{"track_id":"4qgMPzf9QOETWQFUcFkHD4","track_name":"Love Me","track_popularity":62,"artist_name":"RealestK","artist_followers":473107,"explicit":"FALSE","album_type":"single","track_duration_min":3.45,"artist_popularity":56,"artist_genres":null},{"track_id":"0NfwNHAyi4s9HVes4JkaXA","track_name":"This Moment","track_popularity":39,"artist_name":"Katy Perry","artist_followers":38385499,"explicit":"FALSE","album_type":"album","track_duration_min":3.77,"artist_popularity":83,"artist_genres":"pop"},{"track_id":"6eygbzyL6hY8jFQTARDuo9","track_name":"White Mustang","track_popularity":76,"artist_name":"Lana Del Rey","artist_followers":51773650,"explicit":"FALSE","album_type":"album","track_duration_min":2.74,"artist_popularity":88,"artist_genres":"alternative pop, indie pop"},{"track_id":"3fRJwWQp9g2skjBFsNqHNV","track_name":"Under Stars - Loon Remix","track_popularity":26,"artist_name":"AURORA","artist_followers":4694955,"explicit":"FALSE","album_type":"album","track_duration_min":3.55,"artist_popularity":72,"artist_genres":"norwegian pop, art pop"},{"track_id":"3yfqSUWxFvZELEM4PmlwIR","track_name":"The Real Slim Shady","track_popularity":84,"artist_name":"Eminem","artist_followers":104559284,"explicit":"TRUE","album_type":"album","track_duration_min":4.73,"artist_popularity":88,"artist_genres":"rap, hip hop"},{"track_id":"2pYtUiFhiRH5ssLl7wBK4v","track_name":"The Story Continues","track_popularity":45,"artist_name":"Patrick Doyle","artist_followers":97014,"explicit":"FALSE","album_type":"compilation","track_duration_min":1.48,"artist_popularity":55,"artist_genres":"soundtrack"},{"track_id":"7GGgftep0Q8TZzL07qhPbc","track_name":"Let You Go","track_popularity":52,"artist_name":"ConKi","artist_followers":26114,"explicit":"FALSE","album_type":"single","track_duration_min":2.66,"artist_popularity":61,"artist_genres":null},{"track_id":"0gtSPYz0OHoF7k09Auq1uC","track_name":"Thinking 'Bout You","track_popularity":49,"artist_name":"Dua Lipa","artist_followers":46891061,"explicit":"FALSE","album_type":"album","track_duration_min":2.86,"artist_popularity":85,"artist_genres":"pop"},{"track_id":"6F5c58TMEs1byxUstkzVeM","track_name":"Roar","track_popularity":72,"artist_name":"Katy Perry","artist_followers":38400585,"explicit":"FALSE","album_type":"album","track_duration_min":3.72,"artist_popularity":83,"artist_genres":"pop"},{"track_id":"1mEQbSq0PCNjyL6oMgHKFQ","track_name":"LOVE SONG","track_popularity":75,"artist_name":"Justin Bieber","artist_followers":85008100,"explicit":"FALSE","album_type":"album","track_duration_min":2.87,"artist_popularity":91,"artist_genres":"pop, contemporary r&b"},{"track_id":"4S6fv0puLCsfYjyBTPDb9k","track_name":"Helium","track_popularity":69,"artist_name":"Sia","artist_followers":30550549,"explicit":"FALSE","album_type":"compilation","track_duration_min":4.2,"artist_popularity":82,"artist_genres":null},{"track_id":"06hsdMbBxWGqBO0TV0Zrkf","track_name":"Cotton Eye Joe","track_popularity":71,"artist_name":"Rednex","artist_followers":194340,"explicit":"FALSE","album_type":"album","track_duration_min":3.23,"artist_popularity":56,"artist_genres":null},{"track_id":"6nz35DNIzbtj5ztpDEcW1j","track_name":"Kick, Push","track_popularity":62,"artist_name":"Lupe Fiasco","artist_followers":1984196,"explicit":"FALSE","album_type":"album","track_duration_min":4.24,"artist_popularity":66,"artist_genres":null},{"track_id":"1UcyzhmBDfdw07DiuT7DEG","track_name":"The Perfect Girl - The Motion Retrowave Remix","track_popularity":61,"artist_name":"Mareux","artist_followers":585032,"explicit":"FALSE","album_type":"single","track_duration_min":3.01,"artist_popularity":62,"artist_genres":"darkwave, cold wave"},{"track_id":"6AWldBTJJWOv0VbrNZXFEw","track_name":"How Bad Do U Want Me","track_popularity":60,"artist_name":"Lady Gaga","artist_followers":42237551,"explicit":"TRUE","album_type":"album","track_duration_min":3.98,"artist_popularity":88,"artist_genres":"art pop, pop"},{"track_id":"1KuVEZR4xuQVNr1KkanAV4","track_name":"The Other Woman","track_popularity":75,"artist_name":"Lana Del Rey","artist_followers":51798111,"explicit":"FALSE","album_type":"album","track_duration_min":3.03,"artist_popularity":88,"artist_genres":"alternative pop, indie pop"},{"track_id":"4xqIYGwwZTEem9U8A42SPF","track_name":"Broke In A Minute","track_popularity":71,"artist_name":"Tory Lanez","artist_followers":8272511,"explicit":"TRUE","album_type":"album","track_duration_min":2.2,"artist_popularity":79,"artist_genres":null},{"track_id":"1hoeP1oPYlhcv6iRCtB7pT","track_name":"Man Of The Year","track_popularity":36,"artist_name":"Lorde","artist_followers":10539134,"explicit":"FALSE","album_type":"single","track_duration_min":3.0,"artist_popularity":80,"artist_genres":null},{"track_id":"33Mo6kVD7zhrYQnD03nBj0","track_name":"Big Boy (Sped Up) - Remix","track_popularity":0,"artist_name":"Xanemusic","artist_followers":92528,"explicit":"FALSE","album_type":"single","track_duration_min":2.4,"artist_popularity":32,"artist_genres":null},{"track_id":"4SUwJA3eUVNHExxMPEUhQe","track_name":"Ratchet Happy Birthday","track_popularity":50,"artist_name":"Drake","artist_followers":103039388,"explicit":"TRUE","album_type":"album","track_duration_min":3.45,"artist_popularity":95,"artist_genres":"rap"},{"track_id":"1rmEsOezwf2lmIZTMAO5Ag","track_name":"Chloe or Sam or Sophia or Marcus","track_popularity":70,"artist_name":"Taylor Swift","artist_followers":145489371,"explicit":"FALSE","album_type":"album","track_duration_min":3.55,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"4Ce37cRWvM1vIGGynKcs22","track_name":"Starving","track_popularity":71,"artist_name":"Hailee Steinfeld","artist_followers":8862299,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":66,"artist_genres":null},{"track_id":"261jWBGVjAGH4SuOEVLlvO","track_name":"come closer","track_popularity":71,"artist_name":"sombr","artist_followers":2789144,"explicit":"FALSE","album_type":"album","track_duration_min":3.23,"artist_popularity":85,"artist_genres":null},{"track_id":"5i25MerPtwjolZFZ2hIEai","track_name":"The Dying Gull","track_popularity":0,"artist_name":"Geoff Zanelli","artist_followers":20665,"explicit":"FALSE","album_type":"album","track_duration_min":1.02,"artist_popularity":44,"artist_genres":null},{"track_id":"5ZDKPFRZC6QlJpf8bCIXTs","track_name":"The Abyss (feat. Lana Del Rey)","track_popularity":75,"artist_name":"The Weeknd","artist_followers":112918137,"explicit":"FALSE","album_type":"album","track_duration_min":4.71,"artist_popularity":93,"artist_genres":"r&b pop, alternative r&b, hip hop, synthpop"},{"track_id":"77loZpT5Y5PRP1S451P9Yz","track_name":"The Reason","track_popularity":6,"artist_name":"Hoobastank","artist_followers":2742164,"explicit":"FALSE","album_type":"album","track_duration_min":3.88,"artist_popularity":66,"artist_genres":"nu metal"},{"track_id":"7KXjTSCq5nL1LoYtL7XAwS","track_name":"HUMBLE.","track_popularity":83,"artist_name":"Kendrick Lamar","artist_followers":44577310,"explicit":"TRUE","album_type":"album","track_duration_min":2.95,"artist_popularity":89,"artist_genres":"hip hop, west coast hip hop"},{"track_id":"45hOioMDJktr86iKDHC8gr","track_name":"Girlfriend","track_popularity":76,"artist_name":"Avril Lavigne","artist_followers":12008159,"explicit":"TRUE","album_type":"album","track_duration_min":3.61,"artist_popularity":76,"artist_genres":null},{"track_id":"3ilHldFxauIKYtoGJRFHc5","track_name":"Moon In My Mind","track_popularity":23,"artist_name":"Frankie Rose","artist_followers":35207,"explicit":"FALSE","album_type":"album","track_duration_min":3.16,"artist_popularity":23,"artist_genres":"dream pop"},{"track_id":"2mCF8L0brIs88eH6Kf2h9p","track_name":"Fast Car","track_popularity":67,"artist_name":"Jonas Blue","artist_followers":3877733,"explicit":"FALSE","album_type":"single","track_duration_min":3.54,"artist_popularity":72,"artist_genres":"tropical house"},{"track_id":"3M89zvwwb1jtDUDKYNsdiA","track_name":"Calabria (feat. Lunis & Lujavo)","track_popularity":58,"artist_name":"Dance Fruits Music","artist_followers":557424,"explicit":"FALSE","album_type":"single","track_duration_min":2.14,"artist_popularity":56,"artist_genres":"deep house, slap house"},{"track_id":"1qKCO2Tocwg8CbepJ9uDtd","track_name":"Mean girls","track_popularity":65,"artist_name":"Charli xcx","artist_followers":6315216,"explicit":"TRUE","album_type":"album","track_duration_min":3.15,"artist_popularity":82,"artist_genres":"hyperpop, art pop"},{"track_id":"6YSpHC2T6TyelO5TVeWQHA","track_name":"House Of Cards","track_popularity":36,"artist_name":"Naeleck","artist_followers":115119,"explicit":"FALSE","album_type":"single","track_duration_min":2.2,"artist_popularity":66,"artist_genres":"electro house"},{"track_id":"1IF5UcqRO42D12vYwceOY6","track_name":"From the Dining Table","track_popularity":69,"artist_name":"Harry Styles","artist_followers":34136120,"explicit":"FALSE","album_type":"album","track_duration_min":3.53,"artist_popularity":80,"artist_genres":"pop rock, soft rock, synthpop"},{"track_id":"0SzeKh1SKNy3maV2RCvwgu","track_name":"アシュラ・インドラ","track_popularity":30,"artist_name":"Yasuharu Takanashi","artist_followers":111922,"explicit":"FALSE","album_type":"album","track_duration_min":2.29,"artist_popularity":58,"artist_genres":"anime, soundtrack"},{"track_id":"6iWMI5oOhWrDbLbjmwTWFq","track_name":"Wonderland","track_popularity":54,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":4.09,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"1W5XugQJGhnSATMI5n002M","track_name":"Idioteque","track_popularity":63,"artist_name":"Radiohead","artist_followers":13822540,"explicit":"FALSE","album_type":"album","track_duration_min":5.15,"artist_popularity":85,"artist_genres":"art rock, alternative rock"},{"track_id":"0x1LGmVaDiAVPx3F9RWYgq","track_name":"FUTURE","track_popularity":24,"artist_name":"HEALTH","artist_followers":320700,"explicit":"FALSE","album_type":"album","track_duration_min":4.69,"artist_popularity":57,"artist_genres":"noise rock, industrial, witch house, industrial rock, industrial metal"},{"track_id":"7nAfXgeHfDO50upcOjJOaq","track_name":"Talking to Myself","track_popularity":60,"artist_name":"Linkin Park","artist_followers":31785695,"explicit":"FALSE","album_type":"album","track_duration_min":3.85,"artist_popularity":88,"artist_genres":"nu metal, rap metal, rock, alternative metal"},{"track_id":"4mHM5d2fK3n8xgymjf92w2","track_name":"ordinary things (feat. Nonna)","track_popularity":62,"artist_name":"Ariana Grande","artist_followers":107401919,"explicit":"FALSE","album_type":"album","track_duration_min":2.8,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"0Tuhlg4CnCCgUBkd4yahfu","track_name":"Addicted - Joel Corry Remix","track_popularity":23,"artist_name":"Zerb","artist_followers":174981,"explicit":"TRUE","album_type":"single","track_duration_min":2.45,"artist_popularity":69,"artist_genres":"afro house"},{"track_id":"19A7srqQSXoW14muGyiHjg","track_name":"BOSS - English Ver.","track_popularity":33,"artist_name":"A2O","artist_followers":13826,"explicit":"FALSE","album_type":"album","track_duration_min":2.92,"artist_popularity":46,"artist_genres":"c-pop"},{"track_id":"2bOWJIYSbhwg2NMQq1QMYH","track_name":"Forward (feat. James Blake)","track_popularity":49,"artist_name":"Beyoncé","artist_followers":41180800,"explicit":"FALSE","album_type":"album","track_duration_min":1.32,"artist_popularity":84,"artist_genres":null},{"track_id":"5ixdmTpCmH5diBA1j154wN","track_name":"UN PREVIEW","track_popularity":67,"artist_name":"Bad Bunny","artist_followers":102536542,"explicit":"TRUE","album_type":"album","track_duration_min":2.75,"artist_popularity":95,"artist_genres":"reggaeton, trap latino, urbano latino, latin"},{"track_id":"1DunhgeZSEgWiIYbHqXl0c","track_name":"Latch","track_popularity":67,"artist_name":"Disclosure","artist_followers":2343253,"explicit":"FALSE","album_type":"album","track_duration_min":4.26,"artist_popularity":74,"artist_genres":"house"},{"track_id":"4wyVH6ARfIC1FSvbk1WB5S","track_name":"Acapulco","track_popularity":1,"artist_name":"BRAN","artist_followers":9575,"explicit":"FALSE","album_type":"single","track_duration_min":1.95,"artist_popularity":47,"artist_genres":"afro house, slap house"},{"track_id":"0WsC4ETIXyiHDMXRaPMvKe","track_name":"wgft (feat. Burna Boy)","track_popularity":78,"artist_name":"Gunna","artist_followers":10342615,"explicit":"TRUE","album_type":"album","track_duration_min":3.07,"artist_popularity":85,"artist_genres":"melodic rap"},{"track_id":"75u4UoGKIa3mDTPmCEkn4J","track_name":"Nigiyaka na Machi","track_popularity":30,"artist_name":"Yasuharu Takanashi","artist_followers":111969,"explicit":"FALSE","album_type":"album","track_duration_min":1.42,"artist_popularity":58,"artist_genres":"anime, soundtrack"},{"track_id":"1fLlRApgzxWweF1JTf8yM5","track_name":"Given Up","track_popularity":79,"artist_name":"Linkin Park","artist_followers":31796892,"explicit":"TRUE","album_type":"album","track_duration_min":3.15,"artist_popularity":88,"artist_genres":"nu metal, rap metal, rock, alternative metal"},{"track_id":"3Y2MvObZdPakD1X71KOxCD","track_name":"Teenage Dream","track_popularity":0,"artist_name":"Stephen Dawes","artist_followers":198872,"explicit":"FALSE","album_type":"single","track_duration_min":2.96,"artist_popularity":52,"artist_genres":null},{"track_id":"5JaqApg5415jtjdyjY3wa9","track_name":"Valerie","track_popularity":57,"artist_name":"The Weeknd","artist_followers":112918137,"explicit":"FALSE","album_type":"album","track_duration_min":4.77,"artist_popularity":93,"artist_genres":"r&b pop, alternative r&b, hip hop, synthpop"},{"track_id":"4EPnXAZxLTyXIQSrMMAKRd","track_name":"Cyclops","track_popularity":34,"artist_name":"Marilyn Manson","artist_followers":4969994,"explicit":"TRUE","album_type":"album","track_duration_min":3.54,"artist_popularity":71,"artist_genres":"industrial metal, industrial rock, industrial, metal, nu metal"},{"track_id":"01QdEx6kFr78ZejhQtWR5m","track_name":"Forever & Always (Piano Version) (Taylor’s Version)","track_popularity":58,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":4.46,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"0yp3TvJNlG50Q4tAHWNCRm","track_name":"Enjoy the Silence","track_popularity":77,"artist_name":"Depeche Mode","artist_followers":7379623,"explicit":"FALSE","album_type":"single","track_duration_min":4.29,"artist_popularity":73,"artist_genres":"new wave, synthpop, darkwave"},{"track_id":"0WLWoJc7VqyICKdVrR6jCd","track_name":"all this time","track_popularity":53,"artist_name":"Toby Mai","artist_followers":73397,"explicit":"TRUE","album_type":"single","track_duration_min":2.14,"artist_popularity":50,"artist_genres":"dark r&b"},{"track_id":"4kV4N9D1iKVxx1KLvtTpjS","track_name":"break up with your girlfriend, i'm bored","track_popularity":74,"artist_name":"Ariana Grande","artist_followers":107374593,"explicit":"TRUE","album_type":"album","track_duration_min":3.17,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"4liOrw7OIc5zCxkFJiK2tJ","track_name":"The Immolation Scene","track_popularity":41,"artist_name":"John Williams","artist_followers":1605820,"explicit":"FALSE","album_type":"album","track_duration_min":2.66,"artist_popularity":71,"artist_genres":"soundtrack"},{"track_id":"3Kkjo3cT83cw09VJyrLNwX","track_name":"Oh My God","track_popularity":72,"artist_name":"Adele","artist_followers":66720643,"explicit":"FALSE","album_type":"album","track_duration_min":3.75,"artist_popularity":83,"artist_genres":"soft pop"},{"track_id":"79UJTjTabqsQUhLkTJlSit","track_name":"What's Up?","track_popularity":0,"artist_name":"4 Non Blondes","artist_followers":699249,"explicit":"FALSE","album_type":"compilation","track_duration_min":4.86,"artist_popularity":65,"artist_genres":null},{"track_id":"1gfg5iC8jzQGs8VYlmf07d","track_name":"Ride Through the Country (feat. John Michael Montgomery)","track_popularity":45,"artist_name":"Colt Ford","artist_followers":1156467,"explicit":"FALSE","album_type":"album","track_duration_min":4.49,"artist_popularity":56,"artist_genres":"country hip hop, country, acoustic country, country rock"},{"track_id":"1dGr1c8CrMLDpV6mPbImSI","track_name":"Lover","track_popularity":84,"artist_name":"Taylor Swift","artist_followers":145489371,"explicit":"FALSE","album_type":"album","track_duration_min":3.68,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"6g6A7qNhTfUgOSH7ROOxTD","track_name":"Talk Dirty (feat. 2 Chainz)","track_popularity":67,"artist_name":"Jason Derulo","artist_followers":12460242,"explicit":"TRUE","album_type":"album","track_duration_min":2.96},{"track_id":"0WnQ78V3uJ9sWlK8bA4fR8","track_name":"I'll Wait (feat. Sasha Sloan)","track_popularity":63,"artist_name":"Kygo","artist_followers":12051663,"explicit":"FALSE","album_type":"album","track_duration_min":3.55,"artist_popularity":80,"artist_genres":"tropical house, edm, pop"},{"track_id":"78O0yLq0A5X2b8bU2j2pD6","track_name":"Teardrop","track_popularity":67,"artist_name":"Massive Attack","artist_followers":4017772,"explicit":"FALSE","album_type":"album","track_duration_min":5.74,"artist_popularity":74,"artist_genres":"trip hop"},{"track_id":"3Yl3UqgM5J7yC1wX36r4jP","track_name":"Get Up (Rattle) (Extended)","track_popularity":45,"artist_name":"Bingo Players","artist_followers":1335911,"explicit":"FALSE","album_type":"single","track_duration_min":4.61,"artist_popularity":65,"artist_genres":"big room, edm, dutch house, electro house, house"},{"track_id":"5YJk8Fq0GzKx2gE1B6B2qE","track_name":"26","track_popularity":70,"artist_name":"Lauv","artist_followers":9196160,"explicit":"FALSE","album_type":"single","track_duration_min":2.84,"artist_popularity":82,"artist_genres":"pop, alt z"},{"track_id":"3IuYkFGn6mH3cQzP9xYl8K","track_name":"I'm Yours","track_popularity":76,"artist_name":"Alesso","artist_followers":4798623,"explicit":"FALSE","album_type":"album","track_duration_min":2.8,"artist_popularity":75,"artist_genres":"edm, electro house, pop dance, progressive house"},{"track_id":"1r9xUipOqoNwggSvhgPAae","track_name":"Let It Go","track_popularity":79,"artist_name":"Idina Menzel","artist_followers":338275,"explicit":"FALSE","album_type":"album","track_duration_min":3.73,"artist_popularity":73,"artist_genres":"broadway, show tunes, singer-songwriter pop"},{"track_id":"5E19T0TjK9Yw8Xz0q91z9l","track_name":"I Just Want To Be Your Everything","track_popularity":43,"artist_name":"Andy Gibb","artist_followers":526622,"explicit":"FALSE","album_type":"album","track_duration_min":3.85,"artist_popularity":56,"artist_genres":"disco, soft rock, bubblegum pop, adult standards, sunshine pop"},{"track_id":"7o4B7f7nB6F6Kx0nC84i6I","track_name":"Heartbreak Warfare","track_popularity":65,"artist_name":"John Mayer","artist_followers":13645000,"explicit":"FALSE","album_type":"album","track_duration_min":4.32,"artist_popularity":81,"artist_genres":"pop rock, blues rock, soft rock"},{"track_id":"7123jYV8q1f6H4D3X45qXF","track_name":"I Have Nothing","track_popularity":71,"artist_name":"Whitney Houston","artist_followers":13093226,"explicit":"FALSE","album_type":"album","track_duration_min":4.87,"artist_popularity":80,"artist_genres":"pop, r&b, quiet storm, soul, new jack swing"},{"track_id":"3X5c5sFjFw88kI67pW02X5","track_name":"In The End","track_popularity":85,"artist_name":"Linkin Park","artist_followers":31796892,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":88,"artist_genres":"nu metal, rap metal, rock, alternative metal"},{"track_id":"3V6t5WqXpMv2oW2j10P61T","track_name":"Hate Me","track_popularity":65,"artist_name":"Ellie Goulding","artist_followers":10842245,"explicit":"FALSE","album_type":"single","track_duration_min":3.0,"artist_popularity":77,"artist_genres":"electropop, pop, uk pop"},{"track_id":"25Yn1R31jQ7G8u93hEwQ5P","track_name":"The Boy Is Mine","track_popularity":72,"artist_name":"Brandy","artist_followers":5253574,"explicit":"FALSE","album_type":"album","track_duration_min":4.07,"artist_popularity":74,"artist_genres":"r&b, pop, new jack swing, hip pop, quiet storm"},{"track_id":"1oE4f0k9f1u0gJdR1Vw0eI","track_name":"Wipe It Down","track_popularity":51,"artist_name":"Boog","artist_followers":229231,"explicit":"TRUE","album_type":"single","track_duration_min":1.56,"artist_popularity":42,"artist_genres":"cali rap, hip hop, rap"},{"track_id":"79I6R0u8W0YlXgH3k5c306","track_name":"My First Kiss (feat. Ke$ha)","track_popularity":54,"artist_name":"3OH!3","artist_followers":2668383,"explicit":"TRUE","album_type":"album","track_duration_min":3.34,"artist_popularity":60,"artist_genres":"dance pop, pop emo, crunk, electro pop, electropop, neon pop, pop punk, alternative pop"},{"track_id":"785V78132k2nF3rK7x5uK0","track_name":"Heartbeat Song","track_popularity":65,"artist_name":"Kelly Clarkson","artist_followers":4200424,"explicit":"FALSE","album_type":"album","track_duration_min":3.31,"artist_popularity":76,"artist_genres":"pop, neo mellow"},{"track_id":"409S9YjK1p0c1Kuw6y8N54","track_name":"Holdin' On","track_popularity":39,"artist_name":"Sam Feldt","artist_followers":3139369,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":71,"artist_genres":"dutch house, deep house, house, tropical house"},{"track_id":"1yD2B3F0Y5k16Cj9Qx4t9R","track_name":"How To Love","track_popularity":69,"artist_name":"Lil Wayne","artist_followers":17938214,"explicit":"TRUE","album_type":"album","track_duration_min":4.11,"artist_popularity":86,"artist_genres":"rap, hip hop"},{"track_id":"0s9f2tW0y10P6E984j866K","track_name":"Get You (feat. Kali Uchis)","track_popularity":79,"artist_name":"Daniel Caesar","artist_followers":11593539,"explicit":"FALSE","album_type":"album","track_duration_min":4.37,"artist_popularity":86,"artist_genres":"alternative r&b, r&b"},{"track_id":"5y0sSgX5qj5zE76cK43e60","track_name":"Loud","track_popularity":0,"artist_name":"Rory Rodríguez","artist_followers":27,"explicit":"FALSE","album_type":"single","track_duration_min":2.57,"artist_popularity":0,"artist_genres":null},{"track_id":"6NydnO8Ewhc19D65f2zU05","track_name":"Come With Me Now","track_popularity":65,"artist_name":"KONGOS","artist_followers":676834,"explicit":"FALSE","album_type":"album","track_duration_min":3.52,"artist_popularity":65,"artist_genres":"alternative rock, south african alternative, south african rock"},{"track_id":"1O3Qe7jY4p7X1V5v21x96v","track_name":"I Will Survive","track_popularity":76,"artist_name":"Gloria Gaynor","artist_followers":4273295,"explicit":"FALSE","album_type":"single","track_duration_min":3.96,"artist_popularity":71,"artist_genres":"disco, post-disco, motown, soul, quiet storm, dance-pop, pop, r&b"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"Like A Virgin","track_popularity":70,"artist_name":"Madonna","artist_followers":10860265,"explicit":"FALSE","album_type":"album","track_duration_min":3.57,"artist_popularity":84,"artist_genres":"pop, dance-pop, new wave, art pop"},{"track_id":"6JpL6f345DqG7l0k44Uf2o","track_name":"The Way I Am","track_popularity":77,"artist_name":"Eminem","artist_followers":104543799,"explicit":"TRUE","album_type":"album","track_duration_min":4.79,"artist_popularity":88,"artist_genres":"rap, hip hop"},{"track_id":"4zXy1wM5JjU4b0j1c0o51K","track_name":"Doin' Time","track_popularity":74,"artist_name":"Lana Del Rey","artist_followers":51798111,"explicit":"FALSE","album_type":"album","track_duration_min":3.22,"artist_popularity":88,"artist_genres":"alternative pop, indie pop"},{"track_id":"3R6P3eW96N5WbWjQz39d5y","track_name":"Get You Down","track_popularity":43,"artist_name":"Bree Runway","artist_followers":227546,"explicit":"FALSE","album_type":"single","track_duration_min":2.68,"artist_popularity":52,"artist_genres":"alternative r&b"},{"track_id":"4w3f23mQkG5LwWd7i8398w","track_name":"Hurt","track_popularity":66,"artist_name":"Johnny Cash","artist_followers":9196328,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":72,"artist_genres":"country, outlaw country, classic country, folk"},{"track_id":"2qX59wL2uD7xH5uO8j3x09","track_name":"No Tears Left To Cry","track_popularity":81,"artist_name":"Ariana Grande","artist_followers":107401919,"explicit":"FALSE","album_type":"single","track_duration_min":3.41,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"6W1Q1QJ8W4U9qJ2n5F2xGf","track_name":"Do Not Go Gentle Into That Good Night","track_popularity":43,"artist_name":"Hans Zimmer","artist_followers":3943398,"explicit":"FALSE","album_type":"album","track_duration_min":1.58,"artist_popularity":80,"artist_genres":"soundtrack, score"},{"track_id":"1iYm25Nn7d5B7T2i8YjA77","track_name":"Come With Me","track_popularity":36,"artist_name":"ELLEY DUHÉ","artist_followers":2122340,"explicit":"FALSE","album_type":"single","track_duration_min":3.11,"artist_popularity":72,"artist_genres":"pop, alt z"},{"track_id":"702f2S0nE8yQhKou3H1b8r","track_name":"Just In Time","track_popularity":54,"artist_name":"Dean Martin","artist_followers":4190805,"explicit":"FALSE","album_type":"album","track_duration_min":3.96,"artist_popularity":65,"artist_genres":"vocal jazz, adult standards, easy listening, big band"},{"track_id":"2FvG0D8Yq2qNf8EALW9Y5Q","track_name":"The Reason","track_popularity":78,"artist_name":"Hoobastank","artist_followers":2743907,"explicit":"FALSE","album_type":"album","track_duration_min":3.53,"artist_popularity":66,"artist_genres":"nu metal"},{"track_id":"22zBPf276s6P8mK0z6i32v","track_name":"Don't Stop Me Now","track_popularity":84,"artist_name":"Queen","artist_followers":45052955,"explicit":"FALSE","album_type":"album","track_duration_min":3.3,"artist_popularity":90,"artist_genres":"glam rock, classic rock, rock, pop rock"},{"track_id":"2F7R8D2k2fW3r739gX2C4u","track_name":"No One Left to Die (feat. The Weeknd)","track_popularity":72,"artist_name":"Daft Punk","artist_followers":15194488,"explicit":"FALSE","album_type":"album","track_duration_min":3.56,"artist_popularity":88,"artist_genres":"french house, electro house, house"},{"track_id":"6iS2dJ8vMhD8qC77b8wU7V","track_name":"The Way You Make Me Feel","track_popularity":72,"artist_name":"Michael Jackson","artist_followers":49090620,"explicit":"FALSE","album_type":"album","track_duration_min":4.6,"artist_popularity":87,"artist_genres":"pop, r&b, soul, motown, new jack swing"},{"track_id":"7c7T4jY2Q9x9XhN95j5o8g","track_name":"Bad Romance","track_popularity":84,"artist_name":"Lady Gaga","artist_followers":42275793,"explicit":"FALSE","album_type":"album","track_duration_min":4.97,"artist_popularity":89,"artist_genres":"art pop, pop"},{"track_id":"0WfX89o7qG77gLd4Xn2x9r","track_name":"The Sound Of Silence","track_popularity":69,"artist_name":"Simon & Garfunkel","artist_followers":7222567,"explicit":"FALSE","album_type":"album","track_duration_min":3.11,"artist_popularity":78,"artist_genres":"folk, new york folk, folk rock, singer-songwriter pop"},{"track_id":"4z2r268q2P68Bcw2140e7S","track_name":"Sweet Nothing (Piano Version) (Taylor\u2019s Version)","track_popularity":55,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.48,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"7w0n9cW6B8O28u0D3k4wU9","track_name":"New Again (feat. Lana Del Rey)","track_popularity":72,"artist_name":"The Weeknd","artist_followers":112918137,"explicit":"TRUE","album_type":"album","track_duration_min":3.14,"artist_popularity":93,"artist_genres":"r&b pop, alternative r&b, hip hop, synthpop"},{"track_id":"5wYx910XJ8hO0pU1m3n2aA","track_name":"All Mine","track_popularity":66,"artist_name":"Kanye West","artist_followers":33529321,"explicit":"TRUE","album_type":"album","track_duration_min":2.57,"artist_popularity":89,"artist_genres":"rap, hip hop, chicago rap"},{"track_id":"0F7d0Jt3gqUu8V52uK2uC4","track_name":"I Kissed A Girl","track_popularity":76,"artist_name":"Katy Perry","artist_followers":38397978,"explicit":"TRUE","album_type":"album","track_duration_min":3.0,"artist_popularity":83,"artist_genres":"pop"},{"track_id":"7pP6b93T2b9qFjJ3k5u3XN","track_name":"Love You Like A Woman","track_popularity":56,"artist_name":"JoJo","artist_followers":1807353,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":64,"artist_genres":"pop, r&b"},{"track_id":"2qRj7wQ23mK387L8nDqGvQ","track_name":"Gotta Be Somebody","track_popularity":68,"artist_name":"Nickelback","artist_followers":8161314,"explicit":"FALSE","album_type":"album","track_duration_min":4.3,"artist_popularity":77,"artist_genres":"post-grunge, canadian rock, pop rock, alternative metal"},{"track_id":"1bH7j8B24VpI3sH3Q4W6k6","track_name":"Only Girl (In The World)","track_popularity":75,"artist_name":"Rihanna","artist_followers":79860435,"explicit":"FALSE","album_type":"album","track_duration_min":3.89,"artist_popularity":90,"artist_genres":"pop, r&b, dance-pop, hip hop, quiet storm"},{"track_id":"11f2l4V03c3o0b0KxK23Lw","track_name":"The Scientist","track_popularity":88,"artist_name":"Coldplay","artist_followers":59187123,"explicit":"FALSE","album_type":"album","track_duration_min":5.13,"artist_popularity":89,"artist_genres":"pop rock, rock, alternative rock"},{"track_id":"25Yx8Jv6x6rPzP9l8W07Tz","track_name":"Backdoor","track_popularity":58,"artist_name":"Pop Smoke","artist_followers":13353995,"explicit":"TRUE","album_type":"single","track_duration_min":2.28,"artist_popularity":82,"artist_genres":"drill, hip hop, rap, trap"},{"track_id":"1N5Hk5X9q732nC7l4e2h6P","track_name":"Runaway","track_popularity":60,"artist_name":"AURORA","artist_followers":4697897,"explicit":"FALSE","album_type":"album","track_duration_min":4.21,"artist_popularity":72,"artist_genres":"norwegian pop, art pop"},{"track_id":"159rNqj327uN02qX6t54a0","track_name":"Drunk on a Plane","track_popularity":69,"artist_name":"Dierks Bentley","artist_followers":5273397,"explicit":"FALSE","album_type":"album","track_duration_min":4.02,"artist_popularity":74,"artist_genres":"country, country road, acoustic country"},{"track_id":"15X5R17Wk4X0Xz4Rj59c0Y","track_name":"The Motto","track_popularity":73,"artist_name":"Tiësto","artist_followers":14755106,"explicit":"FALSE","album_type":"single","track_duration_min":2.44,"artist_popularity":84,"artist_genres":"edm, big room, house, pop dance, progressive house"},{"track_id":"7LzN1nL13f5022gJqE761E","track_name":"In The End","track_popularity":68,"artist_name":"Black Veil Brides","artist_followers":4194017,"explicit":"FALSE","album_type":"album","track_duration_min":3.95,"artist_popularity":68,"artist_genres":"screamo, metal, glam metal, alternative metal, post-grunge, gothic metal"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"Like A Virgin","track_popularity":70,"artist_name":"Madonna","artist_followers":10860265,"explicit":"FALSE","album_type":"album","track_duration_min":3.57,"artist_popularity":84,"artist_genres":"pop, dance-pop, new wave, art pop"},{"track_id":"5rFfJt3y5uW920I0l8v61Q","track_name":"Lasting Lover","track_popularity":70,"artist_name":"Sigala","artist_followers":3312985,"explicit":"FALSE","album_type":"single","track_duration_min":3.38,"artist_popularity":74,"artist_genres":"pop, dance-pop, tropical house, edm"},{"track_id":"5YJk8Fq0GzKx2gE1B6B2qE","track_name":"26","track_popularity":70,"artist_name":"Lauv","artist_followers":9196160,"explicit":"FALSE","album_type":"single","track_duration_min":2.84,"artist_popularity":82,"artist_genres":"pop, alt z"},{"track_id":"3IuYkFGn6mH3cQzP9xYl8K","track_name":"I'm Yours","track_popularity":76,"artist_name":"Alesso","artist_followers":4798623,"explicit":"FALSE","album_type":"album","track_duration_min":2.8,"artist_popularity":75,"artist_genres":"edm, electro house, pop dance, progressive house"},{"track_id":"1r9xUipOqoNwggSvhgPAae","track_name":"Let It Go","track_popularity":79,"artist_name":"Idina Menzel","artist_followers":338275,"explicit":"FALSE","album_type":"album","track_duration_min":3.73,"artist_popularity":73,"artist_genres":"broadway, show tunes, singer-songwriter pop"},{"track_id":"5E19T0TjK9Yw8Xz0q91z9l","track_name":"I Just Want To Be Your Everything","track_popularity":43,"artist_name":"Andy Gibb","artist_followers":526622,"explicit":"FALSE","album_type":"album","track_duration_min":3.85,"artist_popularity":56,"artist_genres":"disco, soft rock, bubblegum pop, adult standards, sunshine pop"},{"track_id":"7o4B7f7nB6F6Kx0nC84i6I","track_name":"Heartbreak Warfare","track_popularity":65,"artist_name":"John Mayer","artist_followers":13645000,"explicit":"FALSE","album_type":"album","track_duration_min":4.32,"artist_popularity":81,"artist_genres":"pop rock, blues rock, soft rock"},{"track_id":"7123jYV8q1f6H4D3X45qXF","track_name":"I Have Nothing","track_popularity":71,"artist_name":"Whitney Houston","artist_followers":13093226,"explicit":"FALSE","album_type":"album","track_duration_min":4.87,"artist_popularity":80,"artist_genres":"pop, r&b, quiet storm, soul, new jack swing"},{"track_id":"3X5c5sFjFw88kI67pW02X5","track_name":"In The End","track_popularity":85,"artist_name":"Linkin Park","artist_followers":31796892,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":88,"artist_genres":"nu metal, rap metal, rock, alternative metal"},{"track_id":"3V6t5WqXpMv2oW2j10P61T","track_name":"Hate Me","track_popularity":65,"artist_name":"Ellie Goulding","artist_followers":10842245,"explicit":"FALSE","album_type":"single","track_duration_min":3.0,"artist_popularity":77,"artist_genres":"electropop, pop, uk pop"},{"track_id":"25Yn1R31jQ7G8u93hEwQ5P","track_name":"The Boy Is Mine","track_popularity":72,"artist_name":"Brandy","artist_followers":5253574,"explicit":"FALSE","album_type":"album","track_duration_min":4.07,"artist_popularity":74,"artist_genres":"r&b, pop, new jack swing, hip pop, quiet storm"},{"track_id":"1oE4f0k9f1u0gJdR1Vw0eI","track_name":"Wipe It Down","track_popularity":51,"artist_name":"Boog","artist_followers":229231,"explicit":"TRUE","album_type":"single","track_duration_min":1.56,"artist_popularity":42,"artist_genres":"cali rap, hip hop, rap"},{"track_id":"79I6R0u8W0YlXgH3k5c306","track_name":"My First Kiss (feat. Ke$ha)","track_popularity":54,"artist_name":"3OH!3","artist_followers":2668383,"explicit":"TRUE","album_type":"album","track_duration_min":3.34,"artist_popularity":60,"artist_genres":"dance pop, pop emo, crunk, electro pop, electropop, neon pop, pop punk, alternative pop"},{"track_id":"785V78132k2nF3rK7x5uK0","track_name":"Heartbeat Song","track_popularity":65,"artist_name":"Kelly Clarkson","artist_followers":4200424,"explicit":"FALSE","album_type":"album","track_duration_min":3.31,"artist_popularity":76,"artist_genres":"pop, neo mellow"},{"track_id":"409S9YjK1p0c1Kuw6y8N54","track_name":"Holdin' On","track_popularity":39,"artist_name":"Sam Feldt","artist_followers":3139369,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":71,"artist_genres":"dutch house, deep house, house, tropical house"},{"track_id":"1yD2B3F0Y5k16Cj9Qx4t9R","track_name":"How To Love","track_popularity":69,"artist_name":"Lil Wayne","artist_followers":17938214,"explicit":"TRUE","album_type":"album","track_duration_min":4.11,"artist_popularity":86,"artist_genres":"rap, hip hop"},{"track_id":"0s9f2tW0y10P6E984j866K","track_name":"Get You (feat. Kali Uchis)","track_popularity":79,"artist_name":"Daniel Caesar","artist_followers":11593539,"explicit":"FALSE","album_type":"album","track_duration_min":4.37,"artist_popularity":86,"artist_genres":"alternative r&b, r&b"},{"track_id":"5y0sSgX5qj5zE76cK43e60","track_name":"Loud","track_popularity":0,"artist_name":"Rory Rodríguez","artist_followers":27,"explicit":"FALSE","album_type":"single","track_duration_min":2.57,"artist_popularity":0,"artist_genres":null},{"track_id":"6NydnO8Ewhc19D65f2zU05","track_name":"Come With Me Now","track_popularity":65,"artist_name":"KONGOS","artist_followers":676834,"explicit":"FALSE","album_type":"album","track_duration_min":3.52,"artist_popularity":65,"artist_genres":"alternative rock, south african alternative, south african rock"},{"track_id":"1O3Qe7jY4p7X1V5v21x96v","track_name":"I Will Survive","track_popularity":76,"artist_name":"Gloria Gaynor","artist_followers":4273295,"explicit":"FALSE","album_type":"single","track_duration_min":3.96,"artist_popularity":71,"artist_genres":"disco, post-disco, motown, soul, quiet storm, dance-pop, pop, r&b"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"Like A Virgin","track_popularity":70,"artist_name":"Madonna","artist_followers":10860265,"explicit":"FALSE","album_type":"album","track_duration_min":3.57,"artist_popularity":84,"artist_genres":"pop, dance-pop, new wave, art pop"},{"track_id":"6JpL6f345DqG7l0k44Uf2o","track_name":"The Way I Am","track_popularity":77,"artist_name":"Eminem","artist_followers":104543799,"explicit":"TRUE","album_type":"album","track_duration_min":4.79,"artist_popularity":88,"artist_genres":"rap, hip hop"},{"track_id":"4zXy1wM5JjU4b0j1c0o51K","track_name":"Doin' Time","track_popularity":74,"artist_name":"Lana Del Rey","artist_followers":51798111,"explicit":"FALSE","album_type":"album","track_duration_min":3.22,"artist_popularity":88,"artist_genres":"alternative pop, indie pop"},{"track_id":"3R6P3eW96N5WbWjQz39d5y","track_name":"Get You Down","track_popularity":43,"artist_name":"Bree Runway","artist_followers":227546,"explicit":"FALSE","album_type":"single","track_duration_min":2.68,"artist_popularity":52,"artist_genres":"alternative r&b"},{"track_id":"4w3f23mQkG5LwWd7i8398w","track_name":"Hurt","track_popularity":66,"artist_name":"Johnny Cash","artist_followers":9196328,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":72,"artist_genres":"country, outlaw country, classic country, folk"},{"track_id":"2qX59wL2uD7xH5uO8j3x09","track_name":"No Tears Left To Cry","track_popularity":81,"artist_name":"Ariana Grande","artist_followers":107401919,"explicit":"FALSE","album_type":"single","track_duration_min":3.41,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"6W1Q1QJ8W4U9qJ2n5F2xGf","track_name":"Do Not Go Gentle Into That Good Night","track_popularity":43,"artist_name":"Hans Zimmer","artist_followers":3943398,"explicit":"FALSE","album_type":"album","track_duration_min":1.58,"artist_popularity":80,"artist_genres":"soundtrack, score"},{"track_id":"1iYm25Nn7d5B7T2i8YjA77","track_name":"Come With Me","track_popularity":36,"artist_name":"ELLEY DUHÉ","artist_followers":2122340,"explicit":"FALSE","album_type":"single","track_duration_min":3.11,"artist_popularity":72,"artist_genres":"pop, alt z"},{"track_id":"702f2S0nE8yQhKou3H1b8r","track_name":"Just In Time","track_popularity":54,"artist_name":"Dean Martin","artist_followers":4190805,"explicit":"FALSE","album_type":"album","track_duration_min":3.96,"artist_popularity":65,"artist_genres":"vocal jazz, adult standards, easy listening, big band"},{"track_id":"2FvG0D8Yq2qNf8EALW9Y5Q","track_name":"The Reason","track_popularity":78,"artist_name":"Hoobastank","artist_followers":2743907,"explicit":"FALSE","album_type":"album","track_duration_min":3.53,"artist_popularity":66,"artist_genres":"nu metal"},{"track_id":"22zBPf276s6P8mK0z6i32v","track_name":"Don't Stop Me Now","track_popularity":84,"artist_name":"Queen","artist_followers":45052955,"explicit":"FALSE","album_type":"album","track_duration_min":3.3,"artist_popularity":90,"artist_genres":"glam rock, classic rock, rock, pop rock"},{"track_id":"2F7R8D2k2fW3r739gX2C4u","track_name":"No One Left to Die (feat. The Weeknd)","track_popularity":72,"artist_name":"Daft Punk","artist_followers":15194488,"explicit":"FALSE","album_type":"album","track_duration_min":3.56,"artist_popularity":88,"artist_genres":"french house, electro house, house"},{"track_id":"6iS2dJ8vMhD8qC77b8wU7V","track_name":"The Way You Make Me Feel","track_popularity":72,"artist_name":"Michael Jackson","artist_followers":49090620,"explicit":"FALSE","album_type":"album","track_duration_min":4.6,"artist_popularity":87,"artist_genres":"pop, r&b, soul, motown, new jack swing"},{"track_id":"7c7T4jY2Q9x9XhN95j5u3XN","track_name":"Bad Romance","track_popularity":84,"artist_name":"Lady Gaga","artist_followers":42275793,"explicit":"FALSE","album_type":"album","track_duration_min":4.97,"artist_popularity":89,"artist_genres":"art pop, pop"},{"track_id":"0WfX89o7qG77gLd4Xn2x9r","track_name":"The Sound Of Silence","track_popularity":69,"artist_name":"Simon & Garfunkel","artist_followers":7222567,"explicit":"FALSE","album_type":"album","track_duration_min":3.11,"artist_popularity":78,"artist_genres":"folk, new york folk, folk rock, singer-songwriter pop"},{"track_id":"4z2r268q2P68Bcw2140e7S","track_name":"Sweet Nothing (Piano Version) (Taylor’s Version)","track_popularity":55,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.48,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"7w0n9cW6B8O28u0D3k4wU9","track_name":"New Again (feat. Lana Del Rey)","track_popularity":72,"artist_name":"The Weeknd","artist_followers":112918137,"explicit":"TRUE","album_type":"album","track_duration_min":3.14,"artist_popularity":93,"artist_genres":"r&b pop, alternative r&b, hip hop, synthpop"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"All Mine","track_popularity":66,"artist_name":"Kanye West","artist_followers":33529321,"explicit":"TRUE","album_type":"album","track_duration_min":2.57,"artist_popularity":89,"artist_genres":"rap, hip hop, chicago rap"},{"track_id":"0F7d0Jt3gqUu8V52uK2uC4","track_name":"I Kissed A Girl","track_popularity":76,"artist_name":"Katy Perry","artist_followers":38397978,"explicit":"TRUE","album_type":"album","track_duration_min":3.0,"artist_popularity":83,"artist_genres":"pop"},{"track_id":"7pP6b93T2b9qFjJ3k5u3XN","track_name":"Love You Like A Woman","track_popularity":56,"artist_name":"JoJo","artist_followers":1807353,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":64,"artist_genres":"pop, r&b"},{"track_id":"2qRj7wQ23mK387L8nDqGvQ","track_name":"Gotta Be Somebody","track_popularity":68,"artist_name":"Nickelback","artist_followers":8161314,"explicit":"FALSE","album_type":"album","track_duration_min":4.3,"artist_popularity":77,"artist_genres":"post-grunge, canadian rock, pop rock, alternative metal"},{"track_id":"1bH7j8B24VpI3sH3Q4W6k6","track_name":"Only Girl (In The World)","track_popularity":75,"artist_name":"Rihanna","artist_followers":79860435,"explicit":"FALSE","album_type":"album","track_duration_min":3.89,"artist_popularity":90,"artist_genres":"pop, r&b, dance-pop, hip hop, quiet storm"},{"track_id":"11f2l4V03c3o0b0KxK23Lw","track_name":"The Scientist","track_popularity":88,"artist_name":"Coldplay","artist_followers":59187123,"explicit":"FALSE","album_type":"album","track_duration_min":5.13,"artist_popularity":89,"artist_genres":"pop rock, rock, alternative rock"},{"track_id":"25Yx8Jv6x6rPzP9l8W07Tz","track_name":"Backdoor","track_popularity":58,"artist_name":"Pop Smoke","artist_followers":13353995,"explicit":"TRUE","album_type":"single","track_duration_min":2.28,"artist_popularity":82,"artist_genres":"drill, hip hop, rap, trap"},{"track_id":"1N5Hk5X9q732nC7l4e2h6P","track_name":"Runaway","track_popularity":60,"artist_name":"AURORA","artist_followers":4697897,"explicit":"FALSE","album_type":"album","track_duration_min":4.21,"artist_popularity":72,"artist_genres":"norwegian pop, art pop"},{"track_id":"159rNqj327uN02qX6t54a0","track_name":"Drunk on a Plane","track_popularity":69,"artist_name":"Dierks Bentley","artist_followers":5273397,"explicit":"FALSE","album_type":"album","track_duration_min":4.02,"artist_popularity":74,"artist_genres":"country, country road, acoustic country"},{"track_id":"15X5R17Wk4X0Xz4Rj59c0Y","track_name":"The Motto","track_popularity":73,"artist_name":"Tiësto","artist_followers":14755106,"explicit":"FALSE","album_type":"single","track_duration_min":2.44,"artist_popularity":84,"artist_genres":"edm, big room, house, pop dance, progressive house"},{"track_id":"7LzN1nL13f5022gJqE761E","track_name":"In The End","track_popularity":68,"artist_name":"Black Veil Brides","artist_followers":4194017,"explicit":"FALSE","album_type":"album","track_duration_min":3.95,"artist_popularity":68,"artist_genres":"screamo, metal, glam metal, alternative metal, post-grunge, gothic metal"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"Like A Virgin","track_popularity":70,"artist_name":"Madonna","artist_followers":10860265,"explicit":"FALSE","album_type":"album","track_duration_min":3.57,"artist_popularity":84,"artist_genres":"pop, dance-pop, new wave, art pop"},{"track_id":"5rFfJt3y5uW920I0l8v61Q","track_name":"Lasting Lover","track_popularity":70,"artist_name":"Sigala","artist_followers":3312985,"explicit":"FALSE","album_type":"single","track_duration_min":3.38,"artist_popularity":74,"artist_genres":"pop, dance-pop, tropical house, edm"},{"track_id":"5YJk8Fq0GzKx2gE1B6B2qE","track_name":"26","track_popularity":70,"artist_name":"Lauv","artist_followers":9196160,"explicit":"FALSE","album_type":"single","track_duration_min":2.84,"artist_popularity":82,"artist_genres":"pop, alt z"},{"track_id":"3IuYkFGn6mH3cQzP9xYl8K","track_name":"I'm Yours","track_popularity":76,"artist_name":"Alesso","artist_followers":4798623,"explicit":"FALSE","album_type":"album","track_duration_min":2.8,"artist_popularity":75,"artist_genres":"edm, electro house, pop dance, progressive house"},{"track_id":"1r9xUipOqoNwggSvhgPAae","track_name":"Let It Go","track_popularity":79,"artist_name":"Idina Menzel","artist_followers":338275,"explicit":"FALSE","album_type":"album","track_duration_min":3.73,"artist_popularity":73,"artist_genres":"broadway, show tunes, singer-songwriter pop"},{"track_id":"5E19T0TjK9Yw8Xz0q91z9l","track_name":"I Just Want To Be Your Everything","track_popularity":43,"artist_name":"Andy Gibb","artist_followers":526622,"explicit":"FALSE","album_type":"album","track_duration_min":3.85,"artist_popularity":56,"artist_genres":"disco, soft rock, bubblegum pop, adult standards, sunshine pop"},{"track_id":"7o4B7f7nB6F6Kx0nC84i6I","track_name":"Heartbreak Warfare","track_popularity":65,"artist_name":"John Mayer","artist_followers":13645000,"explicit":"FALSE","album_type":"album","track_duration_min":4.32,"artist_popularity":81,"artist_genres":"pop rock, blues rock, soft rock"},{"track_id":"7123jYV8q1f6H4D3X45qXF","track_name":"I Have Nothing","track_popularity":71,"artist_name":"Whitney Houston","artist_followers":13093226,"explicit":"FALSE","album_type":"album","track_duration_min":4.87,"artist_popularity":80,"artist_genres":"pop, r&b, quiet storm, soul, new jack swing"},{"track_id":"3X5c5sFjFw88kI67pW02X5","track_name":"In The End","track_popularity":85,"artist_name":"Linkin Park","artist_followers":31796892,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":88,"artist_genres":"nu metal, rap metal, rock, alternative metal"},{"track_id":"3V6t5WqXpMv2oW2j10P61T","track_name":"Hate Me","track_popularity":65,"artist_name":"Ellie Goulding","artist_followers":10842245,"explicit":"FALSE","album_type":"single","track_duration_min":3.0,"artist_popularity":77,"artist_genres":"electropop, pop, uk pop"},{"track_id":"25Yn1R31jQ7G8u93hEwQ5P","track_name":"The Boy Is Mine","track_popularity":72,"artist_name":"Brandy","artist_followers":5253574,"explicit":"FALSE","album_type":"album","track_duration_min":4.07,"artist_popularity":74,"artist_genres":"r&b, pop, new jack swing, hip pop, quiet storm"},{"track_id":"1oE4f0k9f1u0gJdR1Vw0eI","track_name":"Wipe It Down","track_popularity":51,"artist_name":"Boog","artist_followers":229231,"explicit":"TRUE","album_type":"single","track_duration_min":1.56,"artist_popularity":42,"artist_genres":"cali rap, hip hop, rap"},{"track_id":"79I6R0u8W0YlXgH3k5c306","track_name":"My First Kiss (feat. Ke$ha)","track_popularity":54,"artist_name":"3OH!3","artist_followers":2668383,"explicit":"TRUE","album_type":"album","track_duration_min":3.34,"artist_popularity":60,"artist_genres":"dance pop, pop emo, crunk, electro pop, electropop, neon pop, pop punk, alternative pop"},{"track_id":"785V78132k2nF3rK7x5uK0","track_name":"Heartbeat Song","track_popularity":65,"artist_name":"Kelly Clarkson","artist_followers":4200424,"explicit":"FALSE","album_type":"album","track_duration_min":3.31,"artist_popularity":76,"artist_genres":"pop, neo mellow"},{"track_id":"409S9YjK1p0c1Kuw6y8N54","track_name":"Holdin' On","track_popularity":39,"artist_name":"Sam Feldt","artist_followers":3139369,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":71,"artist_genres":"dutch house, deep house, house, tropical house"},{"track_id":"1yD2B3F0Y5k16Cj9Qx4t9R","track_name":"How To Love","track_popularity":69,"artist_name":"Lil Wayne","artist_followers":17938214,"explicit":"TRUE","album_type":"album","track_duration_min":4.11,"artist_popularity":86,"artist_genres":"rap, hip hop"},{"track_id":"0s9f2tW0y10P6E984j866K","track_name":"Get You (feat. Kali Uchis)","track_popularity":79,"artist_name":"Daniel Caesar","artist_followers":11593539,"explicit":"FALSE","album_type":"album","track_duration_min":4.37,"artist_popularity":86,"artist_genres":"alternative r&b, r&b"},{"track_id":"5y0sSgX5qj5zE76cK43e60","track_name":"Loud","track_popularity":0,"artist_name":"Rory Rodríguez","artist_followers":27,"explicit":"FALSE","album_type":"single","track_duration_min":2.57,"artist_popularity":0,"artist_genres":null},{"track_id":"6NydnO8Ewhc19D65f2zU05","track_name":"Come With Me Now","track_popularity":65,"artist_name":"KONGOS","artist_followers":676834,"explicit":"FALSE","album_type":"album","track_duration_min":3.52,"artist_popularity":65,"artist_genres":"alternative rock, south african alternative, south african rock"},{"track_id":"1O3Qe7jY4p7X1V5v21x96v","track_name":"I Will Survive","track_popularity":76,"artist_name":"Gloria Gaynor","artist_followers":4273295,"explicit":"FALSE","album_type":"single","track_duration_min":3.96,"artist_popularity":71,"artist_genres":"disco, post-disco, motown, soul, quiet storm, dance-pop, pop, r&b"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"Like A Virgin","track_popularity":70,"artist_name":"Madonna","artist_followers":10860265,"explicit":"FALSE","album_type":"album","track_duration_min":3.57,"artist_popularity":84,"artist_genres":"pop, dance-pop, new wave, art pop"},{"track_id":"6JpL6f345DqG7l0k44Uf2o","track_name":"The Way I Am","track_popularity":77,"artist_name":"Eminem","artist_followers":104543799,"explicit":"TRUE","album_type":"album","track_duration_min":4.79,"artist_popularity":88,"artist_genres":"rap, hip hop"},{"track_id":"4zXy1wM5JjU4b0j1c0o51K","track_name":"Doin' Time","track_popularity":74,"artist_name":"Lana Del Rey","artist_followers":51798111,"explicit":"FALSE","album_type":"album","track_duration_min":3.22,"artist_popularity":88,"artist_genres":"alternative pop, indie pop"},{"track_id":"3R6P3eW96N5WbWjQz39d5y","track_name":"Get You Down","track_popularity":43,"artist_name":"Bree Runway","artist_followers":227546,"explicit":"FALSE","album_type":"single","track_duration_min":2.68,"artist_popularity":52,"artist_genres":"alternative r&b"},{"track_id":"4w3f23mQkG5LwWd7i8398w","track_name":"Hurt","track_popularity":66,"artist_name":"Johnny Cash","artist_followers":9196328,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":72,"artist_genres":"country, outlaw country, classic country, folk"},{"track_id":"2qX59wL2uD7xH5uO8j3x09","track_name":"No Tears Left To Cry","track_popularity":81,"artist_name":"Ariana Grande","artist_followers":107401919,"explicit":"FALSE","album_type":"single","track_duration_min":3.41,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"6W1Q1QJ8W4U9qJ2n5F2xGf","track_name":"Do Not Go Gentle Into That Good Night","track_popularity":43,"artist_name":"Hans Zimmer","artist_followers":3943398,"explicit":"FALSE","album_type":"album","track_duration_min":1.58,"artist_popularity":80,"artist_genres":"soundtrack, score"},{"track_id":"1iYm25Nn7d5B7T2i8YjA77","track_name":"Come With Me","track_popularity":36,"artist_name":"ELLEY DUHÉ","artist_followers":2122340,"explicit":"FALSE","album_type":"single","track_duration_min":3.11,"artist_popularity":72,"artist_genres":"pop, alt z"},{"track_id":"702f2S0nE8yQhKou3H1b8r","track_name":"Just In Time","track_popularity":54,"artist_name":"Dean Martin","artist_followers":4190805,"explicit":"FALSE","album_type":"album","track_duration_min":3.96,"artist_popularity":65,"artist_genres":"vocal jazz, adult standards, easy listening, big band"},{"track_id":"2FvG0D8Yq2qNf8EALW9Y5Q","track_name":"The Reason","track_popularity":78,"artist_name":"Hoobastank","artist_followers":2743907,"explicit":"FALSE","album_type":"album","track_duration_min":3.53,"artist_popularity":66,"artist_genres":"nu metal"},{"track_id":"22zBPf276s6P8mK0z6i32v","track_name":"Don't Stop Me Now","track_popularity":84,"artist_name":"Queen","artist_followers":45052955,"explicit":"FALSE","album_type":"album","track_duration_min":3.3,"artist_popularity":90,"artist_genres":"glam rock, classic rock, rock, pop rock"},{"track_id":"2F7R8D2k2fW3r739gX2C4u","track_name":"No One Left to Die (feat. The Weeknd)","track_popularity":72,"artist_name":"Daft Punk","artist_followers":15194488,"explicit":"FALSE","album_type":"album","track_duration_min":3.56,"artist_popularity":88,"artist_genres":"french house, electro house, house"},{"track_id":"6iS2dJ8vMhD8qC77b8wU7V","track_name":"The Way You Make Me Feel","track_popularity":72,"artist_name":"Michael Jackson","artist_followers":49090620,"explicit":"FALSE","album_type":"album","track_duration_min":4.6,"artist_popularity":87,"artist_genres":"pop, r&b, soul, motown, new jack swing"},{"track_id":"7c7T4jY2Q9x9XhN95j5u3XN","track_name":"Bad Romance","track_popularity":84,"artist_name":"Lady Gaga","artist_followers":42275793,"explicit":"FALSE","album_type":"album","track_duration_min":4.97,"artist_popularity":89,"artist_genres":"art pop, pop"},{"track_id":"0WfX89o7qG77gLd4Xn2x9r","track_name":"The Sound Of Silence","track_popularity":69,"artist_name":"Simon & Garfunkel","artist_followers":7222567,"explicit":"FALSE","album_type":"album","track_duration_min":3.11,"artist_popularity":78,"artist_genres":"folk, new york folk, folk rock, singer-songwriter pop"},{"track_id":"4z2r268q2P68Bcw2140e7S","track_name":"Sweet Nothing (Piano Version) (Taylor’s Version)","track_popularity":55,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.48,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"7w0n9cW6B8O28u0D3k4wU9","track_name":"New Again (feat. Lana Del Rey)","track_popularity":72,"artist_name":"The Weeknd","artist_followers":112918137,"explicit":"TRUE","album_type":"album","track_duration_min":3.14,"artist_popularity":93,"artist_genres":"r&b pop, alternative r&b, hip hop, synthpop"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"All Mine","track_popularity":66,"artist_name":"Kanye West","artist_followers":33529321,"explicit":"TRUE","album_type":"album","track_duration_min":2.57,"artist_popularity":89,"artist_genres":"rap, hip hop, chicago rap"},{"track_id":"0F7d0Jt3gqUu8V52uK2uC4","track_name":"I Kissed A Girl","track_popularity":76,"artist_name":"Katy Perry","artist_followers":38397978,"explicit":"TRUE","album_type":"album","track_duration_min":3.0,"artist_popularity":83,"artist_genres":"pop"},{"track_id":"7pP6b93T2b9qFjJ3k5u3XN","track_name":"Love You Like A Woman","track_popularity":56,"artist_name":"JoJo","artist_followers":1807353,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":64,"artist_genres":"pop, r&b"},{"track_id":"2qRj7wQ23mK387L8nDqGvQ","track_name":"Gotta Be Somebody","track_popularity":68,"artist_name":"Nickelback","artist_followers":8161314,"explicit":"FALSE","album_type":"album","track_duration_min":4.3,"artist_popularity":77,"artist_genres":"post-grunge, canadian rock, pop rock, alternative metal"},{"track_id":"1bH7j8B24VpI3sH3Q4W6k6","track_name":"Only Girl (In The World)","track_popularity":75,"artist_name":"Rihanna","artist_followers":79860435,"explicit":"FALSE","album_type":"album","track_duration_min":3.89,"artist_popularity":90,"artist_genres":"pop, r&b, dance-pop, hip hop, quiet storm"},{"track_id":"11f2l4V03c3o0b0KxK23Lw","track_name":"The Scientist","track_popularity":88,"artist_name":"Coldplay","artist_followers":59187123,"explicit":"FALSE","album_type":"album","track_duration_min":5.13,"artist_popularity":89,"artist_genres":"pop rock, rock, alternative rock"},{"track_id":"25Yx8Jv6x6rPzP9l8W07Tz","track_name":"Backdoor","track_popularity":58,"artist_name":"Pop Smoke","artist_followers":13353995,"explicit":"TRUE","album_type":"single","track_duration_min":2.28,"artist_popularity":82,"artist_genres":"drill, hip hop, rap, trap"},{"track_id":"1N5Hk5X9q732nC7l4e2h6P","track_name":"Runaway","track_popularity":60,"artist_name":"AURORA","artist_followers":4697897,"explicit":"FALSE","album_type":"album","track_duration_min":4.21,"artist_popularity":72,"artist_genres":"norwegian pop, art pop"},{"track_id":"159rNqj327uN02qX6t54a0","track_name":"Drunk on a Plane","track_popularity":69,"artist_name":"Dierks Bentley","artist_followers":5273397,"explicit":"FALSE","album_type":"album","track_duration_min":4.02,"artist_popularity":74,"artist_genres":"country, country road, acoustic country"},{"track_id":"15X5R17Wk4X0Xz4Rj59c0Y","track_name":"The Motto","track_popularity":73,"artist_name":"Tiësto","artist_followers":14755106,"explicit":"FALSE","album_type":"single","track_duration_min":2.44,"artist_popularity":84,"artist_genres":"edm, big room, house, pop dance, progressive house"},{"track_id":"7LzN1nL13f5022gJqE761E","track_name":"In The End","track_popularity":68,"artist_name":"Black Veil Brides","artist_followers":4194017,"explicit":"FALSE","album_type":"album","track_duration_min":3.95,"artist_popularity":68,"artist_genres":"screamo, metal, glam metal, alternative metal, post-grunge, gothic metal"},{"track_id":"5YJk8Fq0GzKx2gE1B6B2qE","track_name":"26","track_popularity":70,"artist_name":"Lauv","artist_followers":9196160,"explicit":"FALSE","album_type":"single","track_duration_min":2.84,"artist_popularity":82,"artist_genres":"pop, alt z"},{"track_id":"3IuYkFGn6mH3cQzP9xYl8K","track_name":"I'm Yours","track_popularity":76,"artist_name":"Alesso","artist_followers":4798623,"explicit":"FALSE","album_type":"album","track_duration_min":2.8,"artist_popularity":75,"artist_genres":"edm, electro house, pop dance, progressive house"},{"track_id":"1r9xUipOqoNwggSvhgPAae","track_name":"Let It Go","track_popularity":79,"artist_name":"Idina Menzel","artist_followers":338275,"explicit":"FALSE","album_type":"album","track_duration_min":3.73,"artist_popularity":73,"artist_genres":"broadway, show tunes, singer-songwriter pop"},{"track_id":"5E19T0TjK9Yw8Xz0q91z9l","track_name":"I Just Want To Be Your Everything","track_popularity":43,"artist_name":"Andy Gibb","artist_followers":526622,"explicit":"FALSE","album_type":"album","track_duration_min":3.85,"artist_popularity":56,"artist_genres":"disco, soft rock, bubblegum pop, adult standards, sunshine pop"},{"track_id":"7o4B7f7nB6F6Kx0nC84i6I","track_name":"Heartbreak Warfare","track_popularity":65,"artist_name":"John Mayer","artist_followers":13645000,"explicit":"FALSE","album_type":"album","track_duration_min":4.32,"artist_popularity":81,"artist_genres":"pop rock, blues rock, soft rock"},{"track_id":"7123jYV8q1f6H4D3X45qXF","track_name":"I Have Nothing","track_popularity":71,"artist_name":"Whitney Houston","artist_followers":13093226,"explicit":"FALSE","album_type":"album","track_duration_min":4.87,"artist_popularity":80,"artist_genres":"pop, r&b, quiet storm, soul, new jack swing"},{"track_id":"3X5c5sFjFw88kI67pW02X5","track_name":"In The End","track_popularity":85,"artist_name":"Linkin Park","artist_followers":31796892,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":88,"artist_genres":"nu metal, rap metal, rock, alternative metal"},{"track_id":"3V6t5WqXpMv2oW2j10P61T","track_name":"Hate Me","track_popularity":65,"artist_name":"Ellie Goulding","artist_followers":10842245,"explicit":"FALSE","album_type":"single","track_duration_min":3.0,"artist_popularity":77,"artist_genres":"electropop, pop, uk pop"},{"track_id":"25Yn1R31jQ7G8u93hEwQ5P","track_name":"The Boy Is Mine","track_popularity":72,"artist_name":"Brandy","artist_followers":5253574,"explicit":"FALSE","album_type":"album","track_duration_min":4.07,"artist_popularity":74,"artist_genres":"r&b, pop, new jack swing, hip pop, quiet storm"},{"track_id":"1oE4f0k9f1u0gJdR1Vw0eI","track_name":"Wipe It Down","track_popularity":51,"artist_name":"Boog","artist_followers":229231,"explicit":"TRUE","album_type":"single","track_duration_min":1.56,"artist_popularity":42,"artist_genres":"cali rap, hip hop, rap"},{"track_id":"79I6R0u8W0YlXgH3k5c306","track_name":"My First Kiss (feat. Ke$ha)","track_popularity":54,"artist_name":"3OH!3","artist_followers":2668383,"explicit":"TRUE","album_type":"album","track_duration_min":3.34,"artist_popularity":60,"artist_genres":"dance pop, pop emo, crunk, electro pop, electropop, neon pop, pop punk, alternative pop"},{"track_id":"785V78132k2nF3rK7x5uK0","track_name":"Heartbeat Song","track_popularity":65,"artist_name":"Kelly Clarkson","artist_followers":4200424,"explicit":"FALSE","album_type":"album","track_duration_min":3.31,"artist_popularity":76,"artist_genres":"pop, neo mellow"},{"track_id":"409S9YjK1p0c1Kuw6y8N54","track_name":"Holdin' On","track_popularity":39,"artist_name":"Sam Feldt","artist_followers":3139369,"explicit":"FALSE","album_type":"single","track_duration_min":2.76,"artist_popularity":71,"artist_genres":"dutch house, deep house, house, tropical house"},{"track_id":"1yD2B3F0Y5k16Cj9Qx4t9R","track_name":"How To Love","track_popularity":69,"artist_name":"Lil Wayne","artist_followers":17938214,"explicit":"TRUE","album_type":"album","track_duration_min":4.11,"artist_popularity":86,"artist_genres":"rap, hip hop"},{"track_id":"0s9f2tW0y10P6E984j866K","track_name":"Get You (feat. Kali Uchis)","track_popularity":79,"artist_name":"Daniel Caesar","artist_followers":11593539,"explicit":"FALSE","album_type":"album","track_duration_min":4.37,"artist_popularity":86,"artist_genres":"alternative r&b, r&b"},{"track_id":"5y0sSgX5qj5zE76cK43e60","track_name":"Loud","track_popularity":0,"artist_name":"Rory Rodríguez","artist_followers":27,"explicit":"FALSE","album_type":"single","track_duration_min":2.57,"artist_popularity":0,"artist_genres":null},{"track_id":"6NydnO8Ewhc19D65f2zU05","track_name":"Come With Me Now","track_popularity":65,"artist_name":"KONGOS","artist_followers":676834,"explicit":"FALSE","album_type":"album","track_duration_min":3.52,"artist_popularity":65,"artist_genres":"alternative rock, south african alternative, south african rock"},{"track_id":"1O3Qe7jY4p7X1V5v21x96v","track_name":"I Will Survive","track_popularity":76,"artist_name":"Gloria Gaynor","artist_followers":4273295,"explicit":"FALSE","album_type":"single","track_duration_min":3.96,"artist_popularity":71,"artist_genres":"disco, post-disco, motown, soul, quiet storm, dance-pop, pop, r&b"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"Like A Virgin","track_popularity":70,"artist_name":"Madonna","artist_followers":10860265,"explicit":"FALSE","album_type":"album","track_duration_min":3.57,"artist_popularity":84,"artist_genres":"pop, dance-pop, new wave, art pop"},{"track_id":"6JpL6f345DqG7l0k44Uf2o","track_name":"The Way I Am","track_popularity":77,"artist_name":"Eminem","artist_followers":104543799,"explicit":"TRUE","album_type":"album","track_duration_min":4.79,"artist_popularity":88,"artist_genres":"rap, hip hop"},{"track_id":"4zXy1wM5JjU4b0j1c0o51K","track_name":"Doin' Time","track_popularity":74,"artist_name":"Lana Del Rey","artist_followers":51798111,"explicit":"FALSE","album_type":"album","track_duration_min":3.22,"artist_popularity":88,"artist_genres":"alternative pop, indie pop"},{"track_id":"3R6P3eW96N5WbWjQz39d5y","track_name":"Get You Down","track_popularity":43,"artist_name":"Bree Runway","artist_followers":227546,"explicit":"FALSE","album_type":"single","track_duration_min":2.68,"artist_popularity":52,"artist_genres":"alternative r&b"},{"track_id":"4w3f23mQkG5LwWd7i8398w","track_name":"Hurt","track_popularity":66,"artist_name":"Johnny Cash","artist_followers":9196328,"explicit":"FALSE","album_type":"album","track_duration_min":3.63,"artist_popularity":72,"artist_genres":"country, outlaw country, classic country, folk"},{"track_id":"2qX59wL2uD7xH5uO8j3x09","track_name":"No Tears Left To Cry","track_popularity":81,"artist_name":"Ariana Grande","artist_followers":107401919,"explicit":"FALSE","album_type":"single","track_duration_min":3.41,"artist_popularity":90,"artist_genres":"pop"},{"track_id":"6W1Q1QJ8W4U9qJ2n5F2xGf","track_name":"Do Not Go Gentle Into That Good Night","track_popularity":43,"artist_name":"Hans Zimmer","artist_followers":3943398,"explicit":"FALSE","album_type":"album","track_duration_min":1.58,"artist_popularity":80,"artist_genres":"soundtrack, score"},{"track_id":"1iYm25Nn7d5B7T2i8YjA77","track_name":"Come With Me","track_popularity":36,"artist_name":"ELLEY DUHÉ","artist_followers":2122340,"explicit":"FALSE","album_type":"single","track_duration_min":3.11,"artist_popularity":72,"artist_genres":"pop, alt z"},{"track_id":"702f2S0nE8yQhKou3H1b8r","track_name":"Just In Time","track_popularity":54,"artist_name":"Dean Martin","artist_followers":4190805,"explicit":"FALSE","album_type":"album","track_duration_min":3.96,"artist_popularity":65,"artist_genres":"vocal jazz, adult standards, easy listening, big band"},{"track_id":"2FvG0D8Yq2qNf8EALW9Y5Q","track_name":"The Reason","track_popularity":78,"artist_name":"Hoobastank","artist_followers":2743907,"explicit":"FALSE","album_type":"album","track_duration_min":3.53,"artist_popularity":66,"artist_genres":"nu metal"},{"track_id":"22zBPf276s6P8mK0z6i32v","track_name":"Don't Stop Me Now","track_popularity":84,"artist_name":"Queen","artist_followers":45052955,"explicit":"FALSE","album_type":"album","track_duration_min":3.3,"artist_popularity":90,"artist_genres":"glam rock, classic rock, rock, pop rock"},{"track_id":"2F7R8D2k2fW3r739gX2C4u","track_name":"No One Left to Die (feat. The Weeknd)","track_popularity":72,"artist_name":"Daft Punk","artist_followers":15194488,"explicit":"FALSE","album_type":"album","track_duration_min":3.56,"artist_popularity":88,"artist_genres":"french house, electro house, house"},{"track_id":"6iS2dJ8vMhD8qC77b8wU7V","track_name":"The Way You Make Me Feel","track_popularity":72,"artist_name":"Michael Jackson","artist_followers":49090620,"explicit":"FALSE","album_type":"album","track_duration_min":4.6,"artist_popularity":87,"artist_genres":"pop, r&b, soul, motown, new jack swing"},{"track_id":"7c7T4jY2Q9x9XhN95j5u3XN","track_name":"Bad Romance","track_popularity":84,"artist_name":"Lady Gaga","artist_followers":42275793,"explicit":"FALSE","album_type":"album","track_duration_min":4.97,"artist_popularity":89,"artist_genres":"art pop, pop"},{"track_id":"0WfX89o7qG77gLd4Xn2x9r","track_name":"The Sound Of Silence","track_popularity":69,"artist_name":"Simon & Garfunkel","artist_followers":7222567,"explicit":"FALSE","album_type":"album","track_duration_min":3.11,"artist_popularity":78,"artist_genres":"folk, new york folk, folk rock, singer-songwriter pop"},{"track_id":"4z2r268q2P68Bcw2140e7S","track_name":"Sweet Nothing (Piano Version) (Taylor’s Version)","track_popularity":55,"artist_name":"Taylor Swift","artist_followers":145443567,"explicit":"FALSE","album_type":"album","track_duration_min":3.48,"artist_popularity":100,"artist_genres":"country, pop, indie, folk"},{"track_id":"7w0n9cW6B8O28u0D3k4wU9","track_name":"New Again (feat. Lana Del Rey)","track_popularity":72,"artist_name":"The Weeknd","artist_followers":112918137,"explicit":"TRUE","album_type":"album","track_duration_min":3.14,"artist_popularity":93,"artist_genres":"r&b pop, alternative r&b, hip hop, synthpop"},{"track_id":"5wNf8VqT6lE8e9R0z2jL87","track_name":"All Mine","track_popularity":66,"artist_name":"Kanye West","artist_followers":33529321,"explicit":"TRUE","album_type":"album","track_duration_min":2.57,"artist_popularity":89,"artist_genres":"rap, hip hop, chicago rap"},{"track_id":"0F7d0Jt3gqUu8V52uK2uC4","track_name":"I Kissed A Girl","track_popularity":76,"artist_name":"Katy Perry","artist_followers":38397978,"explicit":"TRUE","album_type":"album","track_duration_min":3.0,"artist_popularity":83,"artist_genres":"pop"},{"track_id":"7pP6b93T2b9qFjJ3k5u3XN","track_name":"Love You Like A Woman","track_popularity":56,"artist_name":"JoJo","artist_followers":1807353,"explicit":"FALSE","album_type":"single","track_duration_min":3.03,"artist_popularity":64,"artist_genres":"pop, r&b"},{"track_id":"2qRj7wQ23mK387L8nDqGvQ","track_name":"Gotta Be Somebody","track_popularity":68,"artist_name":"Nickelback","artist_followers":8161314,"explicit":"FALSE","album_type":"album","track_duration_min":4.3,"artist_popularity":77,"artist_genres":"post-grunge, canadian rock, pop rock, alternative metal"},{"track_id":"1bH7j8B24VpI3sH3Q4W6k6","track_name":"Only Girl (In The World)","track_popularity":75,"artist_name":"Rihanna","artist_followers":79860435,"explicit":"FALSE","album_type":"album","track_duration_min":3.89,"artist_popularity":90,"artist_genres":"pop, r&b, dance-pop, hip hop, quiet storm"},{"track_id":"11f2l4V03c3o0b0KxK23Lw","track_name":"The Scientist","track_popularity":88,"artist_name":"Coldplay","artist_followers":59187123,"explicit":"FALSE","album_type":"album","track_duration_min":5.13,"artist_popularity":89,"artist_genres":"pop rock, rock, alternative rock"},{"track_id":"25Yx8Jv6x6rPzP9l8W07Tz","track_name":"Backdoor","track_popularity":58,"artist_name":"Pop Smoke","artist_followers":13353995,"explicit":"TRUE","album_type":"single","track_duration_min":2.28,"artist_popularity":82,"artist_genres":"drill, hip hop, rap, trap"},{"track_id":"1N5Hk5X9q732nC7l4e2h6P","track_name":"Runaway","track_popularity":60,"artist_name":"AURORA","artist_followers":4697897,"explicit":"FALSE","album_type":"album","track_duration_min":4.21,"artist_popularity":72,"artist_genres":"norwegian pop, art pop"},{"track_id":"159rNqj327uN02qX6t54a0","track_name":"Drunk on a Plane","track_popularity":69,"artist_name":"Dierks Bentley","artist_followers":5273397,"explicit":"FALSE","album_type":"album","track_duration_min":4.02,"artist_popularity":74,"artist_genres":"country, country road, acoustic country"},{"track_id":"15X5R17Wk4X0Xz4Rj59c0Y","track_name":"The Motto","track_popularity":73,"artist_name":"Tiësto","artist_followers":14755106,"explicit":"FALSE","album_type":"single","track_duration_min":2.44,"artist_popularity":84,"artist_genres":"edm, big room, house, pop dance, progressive house"},{"track_id":"7LzN1nL13f5022gJqE761E","track_name":"In The End","track_popularity":68,"artist_name":"Black Veil Brides","artist_followers":4194017,"explicit":"FALSE","album_type":"album","track_duration_min":3.95,"artist_popularity":68,"artist_genres":"screamo, metal, glam metal, alternative metal, post-grunge, gothic metal"}]
+        
+        // Define the pre-trained coefficients (weights) for the Linear Regression model
+        const MODEL_COEFFICIENTS = {
+            bias: 35.0,
+            artistPopWeight: 0.8,
+            durationWeight: -1.5,
+            singleStatusWeight: 5.0 
+        };
 
-        // Global map for quick lookups (Artist -> Genres, Features)
-        let ARTIST_METADATA = {};
-        let ALL_GENRES = new Set();
-        let ALL_ARTISTS = new Set();
-        let TRACK_MAP = {}; // Map to store tracks by ID for easy lookup
+        // DOM elements for inputs
+        const artistSelect = document.getElementById('artist-select');
+        const genreSelect = document.getElementById('genre-select');
+        const trackSelect = document.getElementById('track-select'); 
+        const artistFollowersInput = document.getElementById('artist-followers');
+        const explicitStatusInput = document.getElementById('explicit-status');
+        const albumTypeDisplay = document.getElementById('album-type-display');
+        const artistPopInput = document.getElementById('artist-pop');
+        const durationMinInput = document.getElementById('duration-min');
+        const summaryElement = document.getElementById('track-artist-summary');
+        
+        // DOM elements for output (needed for resetting)
+        const outputElement = document.getElementById('prediction-output');
+        const messageElement = document.getElementById('prediction-message');
 
-        // --- Core Functions for Two-Way Filtering ---
+        // Initial default state
+        const DEFAULT_SELECTION = {
+            artist: 'Custom Artist',
+            genre: 'custom genre',
+            track: 'Custom Track', 
+            followers: 'N/A',
+            artist_popularity: 75,
+            duration_min: 3.0,
+            explicit: 'N/A',
+            album_type: 'single'
+        };
 
-        /**
-         * Builds the metadata map for artists and extracts all unique genres.
-         */
-        function buildMetadata() {
-            ARTIST_METADATA = {};
-            ALL_GENRES.clear();
-            ALL_ARTISTS.clear();
-            TRACK_MAP = {};
+        // Global map for quick lookups (Artist -> Genres, Features)
+        let ARTIST_METADATA = {};
+        let ALL_GENRES = new Set();
+        let ALL_ARTISTS = new Set();
+        let TRACK_MAP = {}; // Map to store tracks by ID for easy lookup
 
-            SAMPLE_TRACK_DATA.forEach(track => {
-                const artist = track.artist_name;
-                ALL_ARTISTS.add(artist);
-                TRACK_MAP[track.track_id] = track;
+        // --- Core Functions for Two-Way Filtering ---
 
-                // Initialize artist entry if it doesn't exist
-                if (!ARTIST_METADATA[artist]) {
-                    ARTIST_METADATA[artist] = {
-                        tracks: [],
-                        followers: parseInt(track.artist_followers),
-                        popularity: parseInt(track.artist_popularity)
-                    };
-                }
+        /**
+         * Builds the metadata map for artists and extracts all unique genres.
+         */
+        function buildMetadata() {
+            ARTIST_METADATA = {};
+            ALL_GENRES.clear();
+            ALL_ARTISTS.clear();
+            TRACK_MAP = {};
 
-                // Collect track data 
-                ARTIST_METADATA[artist].tracks.push(track);
-                
-                // Collect genres for filtering
-                // Handle null genres (which appeared in the CSV)
-                if (track.artist_genres) {
-                    track.artist_genres.split(',').map(g => g.trim()).forEach(g => {
-                        ALL_GENRES.add(g);
-                    });
-                }
-            });
-        }
+            SAMPLE_TRACK_DATA.forEach(track => {
+                const artist = track.artist_name;
+                ALL_ARTISTS.add(artist);
+                TRACK_MAP[track.track_id] = track;
 
-        /**
-         * Handles when the Artist dropdown value changes.
-         * 1. Filters the Genre dropdown.
-         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
-         * 3. Loads the corresponding feature data (default/custom track).
-         */
-        function handleArtistChange() {
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
-            
-            // 1. Filter Genres based on selected Artist
-            filterGenreDropdown(selectedArtist);
-            
-            // If the previously selected genre is no longer available, reset the genre dropdown
-            if (!Array.from(genreSelect.options).some(option => option.value === selectedGenre)) {
-                genreSelect.selectedIndex = 0; // Select the first available genre or default
-            }
+                // Initialize artist entry if it doesn't exist
+                if (!ARTIST_METADATA[artist]) {
+                    ARTIST_METADATA[artist] = {
+                        tracks: [],
+                        followers: parseInt(track.artist_followers),
+                        popularity: parseInt(track.artist_popularity)
+                    };
+                }
 
-            // 2. Filter Tracks based on the new combination
-            filterTrackDropdown(selectedArtist, genreSelect.value);
+                // Collect track data 
+                ARTIST_METADATA[artist].tracks.push(track);
+                
+                // Collect genres for filtering
+                if (track.artist_genres) {
+                    track.artist_genres.split(',').map(g => g.trim()).forEach(g => {
+                        if (g) ALL_GENRES.add(g);
+                    });
+                }
+            });
+        }
 
-            // 3. Load Features (NO prediction yet)
-            loadFeatures();
-        }
+        /**
+         * Handles when the Artist dropdown value changes.
+         * 1. Filters the Genre dropdown.
+         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
+         * 3. Loads the corresponding feature data (default/custom track).
+         */
+        function handleArtistChange() {
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
+            
+            // 1. Filter Genres based on selected Artist
+            filterGenreDropdown(selectedArtist);
+            
+            // If the previously selected genre is no longer available, reset the genre dropdown
+            if (!Array.from(genreSelect.options).some(option => option.value === selectedGenre)) {
+                genreSelect.selectedIndex = 0; // Select the first available genre or default
+            }
 
-        /**
-         * Handles when the Genre dropdown value changes.
-         * 1. Filters the Artist dropdown.
-         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
-         * 3. Loads the corresponding feature data (default/custom track).
-         */
-        function handleGenreChange() {
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
+            // 2. Filter Tracks based on the new combination
+            filterTrackDropdown(selectedArtist, genreSelect.value);
 
-            // 1. Filter Artists based on selected Genre
-            filterArtistDropdown(selectedGenre);
-            
-            // If the previously selected artist is no longer available, reset the artist dropdown
-            if (!Array.from(artistSelect.options).some(option => option.value === selectedArtist)) {
-                artistSelect.selectedIndex = 0; // Select the first available artist or default
-            }
+            // 3. Load Features (NO prediction yet)
+            loadFeatures();
+        }
 
-            // 2. Filter Tracks based on the new combination
-            filterTrackDropdown(artistSelect.value, selectedGenre);
+        /**
+         * Handles when the Genre dropdown value changes.
+         * 1. Filters the Artist dropdown.
+         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
+         * 3. Loads the corresponding feature data (default/custom track).
+         */
+        function handleGenreChange() {
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
 
-            // 3. Load Features (NO prediction yet)
-            loadFeatures();
-        }
-        
-        /**
-         * Handles when the Track dropdown value changes.
-         * 1. Loads the specific track's features.
-         * 2. Runs the prediction.
-         */
-        function handleTrackChange() {
-            // No need to re-filter Artist/Genre dropdowns, just load the specific track features
-            loadFeatures();
-        }
+            // 1. Filter Artists based on selected Genre
+            filterArtistDropdown(selectedGenre);
+            
+            // If the previously selected artist is no longer available, reset the artist dropdown
+            if (!Array.from(artistSelect.options).some(option => option.value === selectedArtist)) {
+                artistSelect.selectedIndex = 0; // Select the first available artist or default
+            }
 
-        /**
-         * Populates the Artist dropdown, filtering by an optional genre.
-         */
-        function filterArtistDropdown(filterGenre = null) {
-            const previousArtist = artistSelect.value;
-            artistSelect.innerHTML = `<option value="${DEFAULT_SELECTION.artist}">${DEFAULT_SELECTION.artist}</option>`;
-            let filteredArtists = Array.from(ALL_ARTISTS);
+            // 2. Filter Tracks based on the new combination
+            filterTrackDropdown(artistSelect.value, selectedGenre);
 
-            if (filterGenre && filterGenre !== DEFAULT_SELECTION.genre) {
-                filteredArtists = filteredArtists.filter(artist => {
-                    return ARTIST_METADATA[artist].tracks.some(track => 
-                        // Handle null genres safely
-                        (track.artist_genres && track.artist_genres.split(',').map(g => g.trim()).includes(filterGenre))
-                    );
-                });
-            }
+            // 3. Load Features (NO prediction yet)
+            loadFeatures();
+        }
+        
+        /**
+         * Handles when the Track dropdown value changes.
+         * 1. Loads the specific track's features.
+         * 2. Runs the prediction.
+         */
+        function handleTrackChange() {
+            // No need to re-filter Artist/Genre dropdowns, just load the specific track features
+            loadFeatures();
+        }
 
-            filteredArtists.sort().forEach(artist => {
-                const option = document.createElement('option');
-                option.value = artist;
-                option.textContent = artist;
-                artistSelect.appendChild(option);
-            });
-            // Re-select previous value if still available
-            if (Array.from(artistSelect.options).some(option => option.value === previousArtist)) {
-                artistSelect.value = previousArtist;
-            }
-        }
-        
-        /**
-         * Populates the Genre dropdown, filtering by an optional artist.
-         */
-        function filterGenreDropdown(filterArtist = null) {
-            const previousGenre = genreSelect.value;
-            genreSelect.innerHTML = `<option value="${DEFAULT_SELECTION.genre}">${DEFAULT_SELECTION.genre}</option>`;
-            let filteredGenres = Array.from(ALL_GENRES);
+        /**
+         * Populates the Artist dropdown, filtering by an optional genre.
+         */
+        function filterArtistDropdown(filterGenre = null) {
+            const previousArtist = artistSelect.value;
+            artistSelect.innerHTML = `<option value="${DEFAULT_SELECTION.artist}">${DEFAULT_SELECTION.artist}</option>`;
+            let filteredArtists = Array.from(ALL_ARTISTS);
 
-            if (filterArtist && filterArtist !== DEFAULT_SELECTION.artist) {
-                const artistTracks = ARTIST_METADATA[filterArtist]?.tracks || [];
-                const genresForArtist = new Set();
-                artistTracks.forEach(track => {
-                    if (track.artist_genres) {
-                        track.artist_genres.split(',').map(g => g.trim()).forEach(g => genresForArtist.add(g));
-                    }
-                });
-                filteredGenres = Array.from(genresForArtist);
-            }
+            if (filterGenre && filterGenre !== DEFAULT_SELECTION.genre) {
+                filteredArtists = filteredArtists.filter(artist => {
+                    return ARTIST_METADATA[artist].tracks.some(track => 
+                        track.artist_genres && track.artist_genres.split(',').map(g => g.trim()).includes(filterGenre)
+                    );
+                });
+            }
 
-            filteredGenres.sort().forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre;
-                option.textContent = genre;
-                genreSelect.appendChild(option);
-            });
-            // Re-select previous value if still available
-            if (Array.from(genreSelect.options).some(option => option.value === previousGenre)) {
-                genreSelect.value = previousGenre;
-            }
-        }
+            filteredArtists.sort().forEach(artist => {
+                const option = document.createElement('option');
+                option.value = artist;
+                option.textContent = artist;
+                artistSelect.appendChild(option);
+            });
+            // Re-select previous value if still available
+            if (Array.from(artistSelect.options).some(option => option.value === previousArtist)) {
+                artistSelect.value = previousArtist;
+            } else {
+                artistSelect.value = DEFAULT_SELECTION.artist; // Default to Custom Artist if previous isn't available
+            }
+        }
+        
+        /**
+         * Populates the Genre dropdown, filtering by an optional artist.
+         */
+        function filterGenreDropdown(filterArtist = null) {
+            const previousGenre = genreSelect.value;
+            genreSelect.innerHTML = `<option value="${DEFAULT_SELECTION.genre}">${DEFAULT_SELECTION.genre}</option>`;
+            let filteredGenres = Array.from(ALL_GENRES);
 
-        /**
-         * Populates the Track dropdown based on the selected artist and genre.
-         */
-        function filterTrackDropdown(artist, genre) {
-            trackSelect.innerHTML = `<option value="${DEFAULT_SELECTION.track}">Custom Track</option>`;
+            if (filterArtist && filterArtist !== DEFAULT_SELECTION.artist) {
+                const artistTracks = ARTIST_METADATA[filterArtist]?.tracks || [];
+                const genresForArtist = new Set();
+                artistTracks.forEach(track => {
+                    if (track.artist_genres) {
+                         track.artist_genres.split(',').map(g => g.trim()).forEach(g => {
+                            if (g) genresForArtist.add(g);
+                         });
+                    }
+                });
+                filteredGenres = Array.from(genresForArtist);
+            }
 
-            if (artist === DEFAULT_SELECTION.artist) {
-                // If Custom Artist, no tracks to show
-                return;
-            }
+            filteredGenres.sort().forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre;
+                genreSelect.appendChild(option);
+            });
+            // Re-select previous value if still available
+            if (Array.from(genreSelect.options).some(option => option.value === previousGenre)) {
+                genreSelect.value = previousGenre;
+            } else {
+                genreSelect.value = DEFAULT_SELECTION.genre; // Default to Custom Genre if previous isn't available
+            }
+        }
 
-            // Filter tracks by BOTH artist and genre
-            const filteredTracks = ARTIST_METADATA[artist]?.tracks.filter(track => {
-                // Handle null genres safely
-                const trackGenres = track.artist_genres ? track.artist_genres.split(',').map(g => g.trim()) : [];
-                return genre === DEFAULT_SELECTION.genre || trackGenres.includes(genre);
-            }) || [];
-            
-            filteredTracks.sort((a, b) => a.track_name.localeCompare(b.track_name)).forEach(track => {
-                const option = document.createElement('option');
-                option.value = track.track_id; // Use ID for unique identification
-                // Display track name and its actual popularity
-                option.textContent = `${track.track_name} (Pop: ${track.track_popularity})`; 
-                trackSelect.appendChild(option);
-            });
-        }
+        /**
+         * Populates the Track dropdown based on the selected artist and genre.
+         */
+        function filterTrackDropdown(artist, genre) {
+            trackSelect.innerHTML = `<option value="${DEFAULT_SELECTION.track}">Custom Track</option>`;
 
-        // --- Feature Loading and UI Logic ---
-        
-        /**
-         * Cleans up and formats large follower numbers.
-         */
-        function formatFollowers(count) {
-            if (isNaN(count)) return 'N/A';
-            if (count >= 1000000) {
-                return (count / 1000000).toFixed(1) + 'M';
-            }
-            if (count >= 1000) {
-                return (count / 1000).toFixed(0) + 'K';
-            }
-            return count.toString();
-        }
+            if (artist === DEFAULT_SELECTION.artist) {
+                // If Custom Artist, no tracks to show
+                return;
+            }
 
-        /**
-         * Loads and displays the feature data based on the current selections.
-         */
-        function loadFeatures() {
-            const selectedTrackId = trackSelect.value;
-            const selectedArtist = artistSelect.value;
-            const selectedGenre = genreSelect.value;
+            // Filter tracks by BOTH artist and genre
+            const filteredTracks = ARTIST_METADATA[artist]?.tracks.filter(track => {
+                const trackGenres = track.artist_genres ? track.artist_genres.split(',').map(g => g.trim()) : [];
+                return genre === DEFAULT_SELECTION.genre || trackGenres.includes(genre);
+            }) || [];
+            
+            filteredTracks.sort((a, b) => a.track_name.localeCompare(b.track_name)).forEach(track => {
+                const option = document.createElement('option');
+                option.value = track.track_id; // Use ID for unique identification
+                // Display track name and its actual popularity
+                option.textContent = `${track.track_name} (Pop: ${track.track_popularity})`; 
+                trackSelect.appendChild(option);
+            });
+        }
 
-            let features = {};
-            let isCustomMode = false;
+        // --- Feature Loading and UI Logic ---
+        
+        /**
+         * Cleans up and formats large follower numbers.
+         */
+        function formatFollowers(count) {
+            if (isNaN(count)) return 'N/A';
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M';
+            }
+            if (count >= 1000) {
+                return (count / 1000).toFixed(0) + 'K';
+            }
+            return count.toString();
+        }
 
-            if (selectedTrackId === DEFAULT_SELECTION.track || selectedArtist === DEFAULT_SELECTION.artist) {
-                // Case 1: Custom Track / Default Selection (Editable Inputs)
-                isCustomMode = true;
-                features = DEFAULT_SELECTION;
-                summaryElement.textContent = `${DEFAULT_SELECTION.track} | ${selectedArtist} | ${selectedGenre}`;
-            } else {
-                // Case 2: Specific Track Selected (Read-Only Inputs)
-                const track = TRACK_MAP[selectedTrackId];
-                if (!track) {
-                    // Fallback if track data is somehow missing
-                    return; 
-                }
-                
-                features = {
-                    artist: track.artist_name,
-                    genre: selectedGenre, // We stick with the genre filter for display
-                    followers: formatFollowers(parseInt(track.artist_followers)),
-                    artist_popularity: parseInt(track.artist_popularity),
-                    duration_min: parseFloat(track.track_duration_min),
-                    // The explicit column is a string "TRUE" or "FALSE" due to CSV loading.
-                    explicit: track.explicit.toUpperCase() === 'TRUE' ? 'Explicit' : 'Clean',
-                    album_type: track.album_type
-                };
+        /**
+         * Loads and displays the feature data based on the current selections.
+         */
+        function loadFeatures() {
+            const selectedTrackId = trackSelect.value;
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
 
-                summaryElement.textContent = `${track.track_name} | ${features.artist} (${selectedGenre})`;
-            }
+            let features = {};
+            let isCustomMode = false;
 
-            // Update UI fields
-            setFeatureLock(!isCustomMode); // Lock if a real track is selected
-            trackSelect.disabled = (selectedArtist === DEFAULT_SELECTION.artist);
+            if (selectedTrackId === DEFAULT_SELECTION.track || selectedArtist === DEFAULT_SELECTION.artist) {
+                // Case 1: Custom Track / Default Selection (Editable Inputs)
+                isCustomMode = true;
+                
+                // Get artist-specific defaults if an artist is selected
+                let baseArtistPop = DEFAULT_SELECTION.artist_popularity;
+                let baseFollowers = DEFAULT_SELECTION.followers;
 
-            // Display values
-            artistFollowersInput.value = features.followers;
-            albumTypeDisplay.value = features.album_type.charAt(0).toUpperCase() + features.album_type.slice(1);
-            
-            // Set input values (ensuring they are populated in custom mode too)
-            artistPopInput.value = features.artist_popularity; 
-            durationMinInput.value = features.duration_min.toFixed(2); 
-            
-            // Explicit status styling
-            const statusText = features.explicit;
-            const statusColor = statusText === 'Explicit' ? 'bg-red-900/50 text-red-300' : 
-                                statusText === 'Clean' ? 'bg-green-900/50 text-green-300' : 'bg-gray-700 text-gray-400';
-            explicitStatusInput.value = statusText;
-            explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold ${statusColor} input-locked`;
+                if (selectedArtist !== DEFAULT_SELECTION.artist && ARTIST_METADATA[selectedArtist]) {
+                    baseArtistPop = ARTIST_METADATA[selectedArtist].popularity;
+                    baseFollowers = formatFollowers(ARTIST_METADATA[selectedArtist].followers);
+                }
+                
+                features = {
+                    artist: selectedArtist,
+                    genre: selectedGenre,
+                    followers: baseFollowers,
+                    artist_popularity: baseArtistPop,
+                    duration_min: DEFAULT_SELECTION.duration_min,
+                    explicit: DEFAULT_SELECTION.explicit,
+                    album_type: DEFAULT_SELECTION.album_type
+                };
+                
+                summaryElement.textContent = `${DEFAULT_SELECTION.track} | ${selectedArtist} | ${selectedGenre}`;
+            } else {
+                // Case 2: Specific Track Selected (Read-Only Inputs)
+                const track = TRACK_MAP[selectedTrackId];
+                if (!track) {
+                    return; 
+                }
+                
+                features = {
+                    artist: track.artist_name,
+                    genre: selectedGenre, // We stick with the genre filter for display
+                    followers: formatFollowers(parseInt(track.artist_followers)),
+                    artist_popularity: parseInt(track.artist_popularity),
+                    duration_min: parseFloat(track.track_duration_min),
+                    explicit: track.explicit.toUpperCase() === 'TRUE' ? 'Explicit' : 'Clean',
+                    album_type: track.album_type
+                };
 
-            // --- Reset Prediction Output ---
-            outputElement.textContent = '--';
-            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl`;
-            messageElement.textContent = 'Click "Predict Popularity" to calculate the score.';
-            messageElement.className = 'text-center text-lg font-semibold text-gray-400';
-        }
+                summaryElement.textContent = `${track.track_name} | ${features.artist} (${selectedGenre})`;
+            }
 
-        /**
-         * Toggles the read-only state and styling for the numerical feature inputs.
-         */
-        function setFeatureLock(isLocked) {
-            // Only Artist Pop and Duration are editable in Custom mode
-            const editableInputs = [artistPopInput, durationMinInput];
-            editableInputs.forEach(input => {
-                input.readOnly = isLocked;
-                input.classList.toggle('input-locked', isLocked);
-                input.classList.toggle('bg-gray-700', !isLocked);
-                input.classList.toggle('text-gray-400', isLocked);
-                input.classList.toggle('text-white', !isLocked);
-                input.setAttribute('tabindex', isLocked ? -1 : 0);
-            });
-        }
+            // Update UI fields
+            setFeatureLock(!isCustomMode); // Lock if a real track is selected
+            trackSelect.disabled = (selectedArtist === DEFAULT_SELECTION.artist);
 
-        /**
-         * Resets all inputs and filters to the initial default state.
-         */
-        function handleReset() {
-            // Reset Dropdowns
-            artistSelect.value = DEFAULT_SELECTION.artist;
-            genreSelect.value = DEFAULT_SELECTION.genre;
-            trackSelect.value = DEFAULT_SELECTION.track;
-            
-            // Re-run the filtering logic to reset the available options
-            handleArtistChange(); // This triggers the full cascade to reset features
-            
-            // Explicitly load features for the default state and clear prediction
-            loadFeatures(); 
-        }
-        
-        // --- Prediction Logic (Runs ONLY when button is clicked) ---
+            // Display values
+            artistFollowersInput.value = features.followers;
+            albumTypeDisplay.value = features.album_type.charAt(0).toUpperCase() + features.album_type.slice(1);
+            
+            // Set input values (ensuring they are populated in custom mode too)
+            artistPopInput.value = features.artist_popularity; 
+            durationMinInput.value = parseFloat(features.duration_min).toFixed(2); 
+            
+            // Explicit status styling
+            const statusText = features.explicit;
+            const statusColor = statusText === 'EXPLICIT' || statusText === 'TRUE' ? 'bg-red-900/50 text-red-300' : 
+                                statusText === 'CLEAN' || statusText === 'FALSE' ? 'bg-green-900/50 text-green-300' : 'bg-gray-700 text-gray-400';
+            explicitStatusInput.value = statusText === 'TRUE' ? 'Explicit' : statusText === 'FALSE' ? 'Clean' : statusText;
+            explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold ${statusColor} input-locked`;
 
-        function predictPopularity(artistPop, durationMin, isSingle) {
-            const { bias, artistPopWeight, durationWeight, singleStatusWeight } = MODEL_COEFFICIENTS;
+            // --- Reset Prediction Output ---
+            outputElement.textContent = '--';
+            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl`;
+            messageElement.textContent = 'Click "Predict Popularity" to calculate the score.';
+            messageElement.className = 'text-center text-lg font-semibold text-gray-400';
+        }
 
-            let prediction = bias + 
-                             (artistPop * artistPopWeight) + 
-                             (durationMin * durationWeight) + 
-                             (isSingle ? singleStatusWeight : 0);
+        /**
+         * Toggles the read-only state and styling for the numerical feature inputs.
+         */
+        function setFeatureLock(isLocked) {
+            // Only Artist Pop and Duration are editable in Custom mode
+            const editableInputs = [artistPopInput, durationMinInput];
+            editableInputs.forEach(input => {
+                input.readOnly = isLocked;
+                input.classList.toggle('input-locked', isLocked);
+                input.classList.toggle('bg-gray-700', !isLocked);
+                input.classList.toggle('text-gray-400', isLocked);
+                input.classList.toggle('text-white', !isLocked);
+                input.setAttribute('tabindex', isLocked ? -1 : 0);
+            });
+        }
 
-            prediction = Math.max(0, Math.min(100, prediction));
-            return prediction;
-        }
+        /**
+         * Resets all inputs and filters to the initial default state.
+         */
+        function handleReset() {
+            // Reset Dropdowns
+            artistSelect.value = DEFAULT_SELECTION.artist;
+            genreSelect.value = DEFAULT_SELECTION.genre;
+            
+            // Note: Since artist/genre selects are reset, we need to rebuild the track list to ensure the default "Custom Track" is selected.
+            // Resetting track select first to prevent an erroneous lookup on loadFeatures()
+            trackSelect.innerHTML = `<option value="${DEFAULT_SELECTION.track}">Custom Track</option>`;
+            trackSelect.value = DEFAULT_SELECTION.track;
+            
+            // Re-run the filtering logic to reset the available options
+            // The cascade from handleArtistChange will also call loadFeatures()
+            handleArtistChange();
+        }
+        
+        // --- Prediction Logic (Runs ONLY when button is clicked) ---
 
-        function handlePrediction() {
-            // Get current selected features from the input fields
-            const artistPop = parseFloat(artistPopInput.value);
-            const durationMin = parseFloat(durationMinInput.value);
-            const albumType = albumTypeDisplay.value.toLowerCase();
-            const isSingle = albumType === 'single';
+        function predictPopularity(artistPop, durationMin, isSingle) {
+            const { bias, artistPopWeight, durationWeight, singleStatusWeight } = MODEL_COEFFICIENTS;
 
-            const outputElement = document.getElementById('prediction-output');
-            const messageElement = document.getElementById('prediction-message');
-            
-            // --- Input Validation ---
-            if (isNaN(artistPop) || artistPop < 0 || artistPop > 100 || isNaN(durationMin) || durationMin <= 0) {
-                outputElement.textContent = 'Err';
-                outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-red-500 shadow-xl transition-all duration-500`;
-                messageElement.textContent = 'Please ensure Artist Popularity (0-100) and Duration (Min 0.5) are valid numbers.';
-                messageElement.className = 'text-center text-lg font-semibold text-red-500';
-                return;
-            }
+            let prediction = bias + 
+                             (artistPop * artistPopWeight) + 
+                             (durationMin * durationWeight) + 
+                             (isSingle ? singleStatusWeight : 0);
 
-            // --- Run Prediction ---
-            const predictedScore = predictPopularity(artistPop, durationMin, isSingle);
+            prediction = Math.max(0, Math.min(100, prediction));
+            return prediction;
+        }
 
-            // --- Update UI ---
-            const roundedScore = Math.round(predictedScore);
-            outputElement.textContent = roundedScore;
-            
-            let colorClass = 'border-gray-500';
-            let message = "A niche track, potentially a deep cut or older release.";
+        function handlePrediction() {
+            // Get current selected features from the input fields
+            const artistPop = parseFloat(artistPopInput.value);
+            const durationMin = parseFloat(durationMinInput.value);
+            const albumType = albumTypeDisplay.value.toLowerCase();
+            const isSingle = albumType === 'single';
 
-            if (roundedScore >= 80) {
-                colorClass = 'border-green-500';
-                message = "🔥 Mega Hit Potential! High probability of trending.";
-            } else if (roundedScore >= 60) {
-                colorClass = 'border-yellow-500';
-                message = "⭐ Strong Performer. Likely to be included in popular playlists.";
-            } else if (roundedScore >= 40) {
-                colorClass = 'border-blue-500';
-                message = "📈 Moderate Success. Solid track for the artist's discography.";
-            } else {
-                colorClass = 'border-red-500';
-                message = "📉 Low Popularity. May be an album filler or highly experimental.";
-            }
-            
-            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 ${colorClass} shadow-xl transition-all duration-500`;
-            messageElement.textContent = message;
-            messageElement.className = 'text-center text-lg font-semibold ' + (roundedScore >= 80 ? 'text-green-400' : 'text-gray-400');
-        }
+            const outputElement = document.getElementById('prediction-output');
+            const messageElement = document.getElementById('prediction-message');
+            
+            // --- Input Validation ---
+            if (isNaN(artistPop) || artistPop < 0 || artistPop > 100 || isNaN(durationMin) || durationMin <= 0) {
+                outputElement.textContent = 'Err';
+                outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-red-500 shadow-xl transition-all duration-500`;
+                messageElement.textContent = 'Please ensure Artist Popularity (0-100) and Duration (Min 0.5) are valid numbers.';
+                messageElement.className = 'text-center text-lg font-semibold text-red-500';
+                return;
+            }
 
-        // --- Initialization ---
+            // --- Run Prediction ---
+            const predictedScore = predictPopularity(artistPop, durationMin, isSingle);
 
-        /**
-         * Initializes the application.
-         */
-        function initializeApp() {
-            buildMetadata();
-            // Initial population of all dropdowns with all options/defaults
-            filterArtistDropdown(null);
-            filterGenreDropdown(null);
-            filterTrackDropdown(DEFAULT_SELECTION.artist, DEFAULT_SELECTION.genre); 
+            // --- Update UI ---
+            const roundedScore = Math.round(predictedScore);
+            outputElement.textContent = roundedScore;
+            
+            let colorClass = 'border-gray-500';
+            let message = "A niche track, potentially a deep cut or older release.";
 
-            // Select the default custom options initially
-            artistSelect.value = DEFAULT_SELECTION.artist;
-            genreSelect.value = DEFAULT_SELECTION.genre;
-            trackSelect.value = DEFAULT_SELECTION.track;
-            
-            // Load features for display, but DO NOT run initial prediction
-            loadFeatures();
-        }
+            if (roundedScore >= 80) {
+                colorClass = 'border-green-500';
+                message = "🔥 Mega Hit Potential! High probability of trending.";
+            } else if (roundedScore >= 60) {
+                colorClass = 'border-yellow-500';
+                message = "⭐ Strong Performer. Likely to be included in popular playlists.";
+            } else if (roundedScore >= 40) {
+                colorClass = 'border-blue-500';
+                message = "📈 Moderate Success. Solid track for the artist's discography.";
+            } else {
+                colorClass = 'border-red-500';
+                message = "📉 Low Popularity. May be an album filler or highly experimental.";
+            }
+            
+            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 ${colorClass} shadow-xl transition-all duration-500`;
+            messageElement.textContent = message;
+            messageElement.className = 'text-center text-lg font-semibold ' + (roundedScore >= 80 ? 'text-green-400' : 'text-gray-400');
+        }
 
-        // Initialize the app on page load
-        document.addEventListener('DOMContentLoaded', initializeApp);
-    </script>
+        // --- Initialization ---
+
+        /**
+         * Initializes the application.
+         */
+        function initializeApp() {
+            buildMetadata();
+            // Initial population of all dropdowns with all options/defaults
+            filterArtistDropdown(null);
+            filterGenreDropdown(null);
+            filterTrackDropdown(DEFAULT_SELECTION.artist, DEFAULT_SELECTION.genre); 
+
+            // Select the default custom options initially
+            artistSelect.value = DEFAULT_SELECTION.artist;
+            genreSelect.value = DEFAULT_SELECTION.genre;
+            trackSelect.value = DEFAULT_SELECTION.track;
+            
+            // Load features for display, but DO NOT run initial prediction
+            loadFeatures();
+        }
+
+        // Initialize the app on page load
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
 </body>
