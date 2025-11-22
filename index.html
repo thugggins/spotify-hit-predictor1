@@ -3,250 +3,607 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Track Analysis</title>
-    <!-- Load Tailwind CSS for styling -->
+    <title>Spotify Popularity Predictor (ML Demo)</title>
+    <!-- Load Tailwind CSS from CDN for modern, responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load D3.js for data visualization -->
-    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        /* Custom styles for the visualization container */
-        .chart-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-            min-height: 80vh;
+        /* Custom styles for a dark, Spotify-inspired theme */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap');
+        :root {
+            --spotify-green: #1DB954;
+            --dark-background: #121212;
+            --card-background: #1F1F1F;
+            --text-light: #FFFFFF;
         }
-        /* Style the SVG for better appearance */
-        svg {
-            background-color: #ffffff;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            overflow: visible; /* Allows axes labels to extend outside */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-background);
         }
-        .tooltip {
-            position: absolute;
-            text-align: center;
-            padding: 0.5rem;
-            background: #2d3748; /* Dark gray background */
-            color: white;
-            border: 0px;
-            border-radius: 4px;
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.2s;
+        .predictor-card {
+            background-color: var(--card-background);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .domain, .tick line {
-            stroke: #4a5568; /* Gray for axis lines */
+        /* Custom focus color */
+        input:focus, select:focus {
+            border-color: var(--spotify-green) !important;
+            box-shadow: 0 0 0 1px var(--spotify-green) !important;
         }
-        .axis text {
-            fill: #4a5568; /* Gray for axis labels */
-            font-size: 0.875rem;
+        /* Style for read-only/locked inputs */
+        .input-locked {
+            background-color: #303030; /* Darker background for locked state */
+            color: #A0A0A0; /* Grayed out text */
+            cursor: not-allowed;
+        }
+        /* Hide number input spinners */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <div class="p-6 md:p-10">
-        <h1 class="text-3xl font-extrabold text-gray-800 mb-2 text-center">Spotify Track Popularity & Duration</h1>
-        <p class="text-gray-600 text-center mb-6">A scatter plot showing track popularity vs. duration in minutes.</p>
-        <div id="chart" class="chart-container">
-            <!-- D3.js chart will be inserted here -->
+    <!-- Main Prediction Application Card -->
+    <div class="predictor-card w-full max-w-lg shadow-2xl rounded-xl p-6 md:p-10 space-y-6">
+
+        <h1 class="text-3xl font-extrabold text-center text-white">
+            <span class="text-green-400">Spotify</span> Hit Predictor
+        </h1>
+        <p id="ready-message" class="text-center text-gray-400 text-sm">
+            Select an Artist, Genre, and optionally a Track for prediction.
+        </p>
+        
+        <!-- Input Form for Track Features -->
+        <div class="space-y-4">
+
+            <!-- 1. Artist and Genre Dropdowns (Primary Inputs) -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Artist Name -->
+                <div>
+                    <label for="artist-select" class="block text-sm font-medium text-gray-300">Select Artist</label>
+                    <select id="artist-select" onchange="handleArtistChange()"
+                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                
+                <!-- Genre -->
+                <div>
+                    <label for="genre-select" class="block text-sm font-medium text-gray-300">Select Genre</label>
+                    <select id="genre-select" onchange="handleGenreChange()"
+                            class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 2. Track Selector -->
+            <div>
+                <label for="track-select" class="block text-sm font-medium text-gray-300">Select Track</label>
+                <select id="track-select" onchange="handleTrackChange()"
+                        class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 appearance-none transition duration-150">
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+
+
+            <!-- 3. Album Type (Read-only) - Full Width -->
+            <div>
+                <label for="album-type-display" class="block text-sm font-medium text-gray-300">Album Type</label>
+                <input type="text" id="album-type-display" value="" readonly
+                       class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked">
+                <p class="text-xs text-gray-500 mt-1">Single status is a feature for the model.</p>
+            </div>
+
+
+            <!-- 4. Track Metadata: Followers & Artist Pop (2-Column Grid) -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Artist Followers (Read-only) -->
+                <div>
+                    <label for="artist-followers" class="block text-sm font-medium text-gray-300">Followers</label>
+                    <input type="text" id="artist-followers" value="" readonly
+                           class="mt-1 w-full p-3 text-gray-400 rounded-lg border border-gray-600 input-locked text-center">
+                </div>
+
+                <!-- Artist Popularity (Editable for Custom Track) -->
+                <div>
+                    <label for="artist-pop" class="block text-sm font-medium text-gray-300">Artist Popularity</label>
+                    <input type="number" id="artist-pop" min="0" max="100" value=""
+                           class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150 text-center">
+                </div>
+            </div>
+
+            <!-- 5. Track Duration (Minutes) - Full Width -->
+            <div>
+                <label for="duration-min" class="block text-sm font-medium text-gray-300">Track Duration (Minutes)</label>
+                <input type="number" id="duration-min" step="0.01" min="0.5" value=""
+                       class="mt-1 w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 transition duration-150">
+            </div>
+            
+            <!-- 6. Explicit Status (Read-only) - Full Width -->
+            <div>
+                <label for="explicit-status" class="block text-sm font-medium text-gray-300">Explicit Status</label>
+                <input type="text" id="explicit-status" value="" readonly
+                       class="mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold">
+            </div>
+            
         </div>
+
+        <!-- Action Buttons (Predict and Reset) -->
+        <div class="grid grid-cols-3 gap-4">
+            <button onclick="handleReset()"
+                    class="col-span-1 py-3 mt-4 text-sm font-bold text-white bg-gray-600 rounded-lg shadow-md hover:bg-gray-500 transition duration-300 ease-in-out transform hover:scale-[1.01]"
+                    id="reset-button">
+                Reset
+            </button>
+            <button onclick="handlePrediction()"
+                    class="col-span-2 py-3 mt-4 text-lg font-bold text-black bg-green-500 rounded-lg shadow-md hover:bg-green-400 transition duration-300 ease-in-out transform hover:scale-[1.01]"
+                    id="predict-button">
+                Predict Popularity
+            </button>
+        </div>
+
+        <!-- Prediction Output Display -->
+        <div class="pt-6 border-t border-gray-700 space-y-3">
+            <p class="text-center text-gray-300 font-medium">Predicted Popularity Score (0-100) for:</p>
+            <p id="track-artist-summary" class="text-center text-xl font-bold text-white">
+                ---
+            </p>
+            <div class="flex justify-center items-center">
+                <div id="prediction-output" 
+                     class="text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl">
+                    --
+                </div>
+            </div>
+            <p id="prediction-message" class="text-center text-lg font-semibold text-gray-400">Click "Predict Popularity" to calculate the score.</p>
+        </div>
+
+        <!-- ML Model Summary / Disclaimer -->
+        <div class="mt-6 p-4 text-xs bg-gray-800 rounded-lg text-gray-400">
+            <h3 class="font-bold text-gray-200 mb-1">Model Details (Simulated Logistic Regression)</h3>
+            <p>This demo uses a simplified model based on the following weights:</p>
+            <ul class="list-disc list-inside ml-2 mt-1 space-y-0.5">
+                <li><span class="font-mono text-green-300">Bias:</span> 35.0 (Base Popularity)</li>
+                <li><span class="font-mono text-green-300">Artist Popularity Weight:</span> +0.8 (Strong positive influence)</li>
+                <li><span class="font-mono text-green-300">Duration Weight:</span> -1.5 (Small penalty for non-standard duration)</li>
+                <li><span class="font-mono text-green-300">Single Status Weight:</span> +5.0 (Singles generally receive more promotional focus than album tracks)</li>
+            </ul>
+        </div>
+        
     </div>
 
-    <!-- Tooltip element -->
-    <div id="tooltip" class="tooltip"></div>
-
     <script>
-        // Use the provided CSV content string directly for reliable loading in the browser environment.
-        // The data includes: track_popularity, track_duration_min, track_name, artist_name, etc.
-        const csvData = `track_id,track_name,track_number,track_popularity,explicit,artist_name,artist_popularity,artist_followers,artist_genres,album_id,album_name,album_release_date,album_total_tracks,album_type,track_duration_min
-3EJS5LyekDim1Tf5rBFmZl,"Trippy Mane (ft. Project Pat)",4,0,TRUE,Diplo,77,2812821,moombahton,5QRFnGnBeMGePBKF2xTz5z,"d00mscrvll, Vol. 1",2025-10-31,9,album,1.55
-1oQW6G2ZiwMuHqlPpP27DB,OMG!,1,0,TRUE,Yelawolf,64,2363438,"country hip hop, southern hip hop",4SUmmwnv0xTjRcLdjczGg2,OMG!,2025-10-31,1,single,3.07
-7mdkjzoIYlf1rx9EtBpGmU,"Hard 2 Find",1,4,TRUE,"Riff Raff",48,193302,N/A,3E3zEAL8gUYWaLYB9L7gbp,"Hard 2 Find",2025-10-31,1,single,2.55
-67rW0Zl7oB3qEpD5YWWE5w,"Still Get Like That (ft. Project Pat & Starrah)",8,30,TRUE,Diplo,77,2812821,moombahton,5QRFnGnBeMGePBKF2xTz5z,"d00mscrvll, Vol. 1",2025-10-31,9,album,3.67
-32tQGqM87vY6L5GjN0X452,"Never Die",2,1,TRUE,"Riff Raff",48,193302,N/A,3E3zEAL8gUYWaLYB9L7gbp,"Hard 2 Find",2025-10-31,1,single,2.56
-70eJg44E72dCg5BqB1cE3R,"Heart of Mine",1,13,FALSE,"K-Pop Cover Artists",0,40,N/A,304H1nF8Y7VlJ5R7n2Fq2r,"Heart of Mine",2025-10-31,1,single,3.22
-7y4x7w0gLzP34qG0YlqY5K,"Feel Like",1,0,FALSE,"K-Pop Cover Artists",0,40,N/A,4D91jFq0K1o6T5v2n7x1kK,"Feel Like",2025-10-31,1,single,3.16
-6b72Q8g5F95s5wK4oG9v4v,"I Love My Life",1,13,FALSE,"K-Pop Cover Artists",0,40,N/A,57tB6R3qX7GfP2N07x7W7s,"I Love My Life",2025-10-31,1,single,3.23
-5FvYgUv1i3Dq86bF3VpL6y,"I Want To Know",1,10,FALSE,"K-Pop Cover Artists",0,40,N/A,06mN7wK0h7M6k3n6u2K5Jd,"I Want To Know",2025-10-31,1,single,3.15
-7tD7QyK02lY8Nq7t9w67rR,No Excuses,1,0,FALSE,"K-Pop Cover Artists",0,40,N/A,4hN9V7TqW8C2o2S9B9t9yX,"No Excuses",2025-10-31,1,single,3.21
-07Qc47Q7G0Dq73D9T34f5H,L.I.E.,1,10,FALSE,"K-Pop Cover Artists",0,40,N/A,3g8vL3w7n7e6B2p2P1P2gX,"L.I.E.",2025-10-31,1,single,3.23
-1yG6t3E7M2S1E4E4D3W5y0,"Feel Special",1,10,FALSE,"K-Pop Cover Artists",0,40,N/A,7v9Y4L8c3m7rP5p8M3h7E7,"Feel Special",2025-10-31,1,single,3.24
-3OnCnEWgy79xR5pr2kv4TX,Misirlou,4,47,FALSE,"Dick Dale",41,137984,"surf rock",7bGmjO5Cthm1SNOwUhLwKE,"Wanna Surf?",1960-12-10,19,album,2.26
-2QfiRTz5Yc8DdShCxG1tB2,"Johnny B. Goode",6,74,FALSE,"Chuck Berry",63,2211249,"rockabilly, rock and roll",6eedtCtCjibu80yOhylSGL,"Berry Is On Top",1959-07-01,12,album,2.69
-68FTJoO8edSpzuYb6lGW6P,"Saddle Tramp",14,58,FALSE,"Marty Robbins",61,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,2.05
-0AQquaENerGps8BQmbPw14,"Big Iron",1,71,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,3.92
-4f8hBeMXMvssn6HtYh4B5J,"El Paso",2,71,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,4.4
-6M3Yh9j6JkS85d4g39eM7f,Cool Water,3,56,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,2.98
-4f7P0M206tDk9h9gW6z7S7,Billy The Kid,4,48,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,2.94
-4f7P0M206tDk9h9gW6z7S7,They're Hanging Me Tonight,5,44,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,3.22
-4f7P0M206tDk9h9gW6z7S7,The Strawberry Roan,6,43,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,3.27
-4f7P0M206tDk9h9gW6z7S7,Running Gun,7,47,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,2.44
-4f7P0M206tDk9h9gW6z7S7,In The Valley,8,44,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,1.86
-4f7P0M206tDk9h9gW6z7S7,The Master's Call,9,50,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,2.69
-4f7P0M206tDk9h9gW6z7S7,When Payday Rolls Around,10,43,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,2.46
-4f7P0M206tDk9h9gW6z7S7,Strawberry Roan,11,43,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,3.32
-4f7P0M206tDk9h9gW6z7S7,Utah Carol,12,42,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,3.22
-4f7P0M206tDk9h9gW6z7S7,The Man Who Couldn't Hang,13,42,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,4.19
-4f7P0M206tDk9h9gW6z7S7,Tumbling Tumbleweeds,15,50,FALSE,"Marty Robbins",60,626733,"classic country, outlaw country",3kQpBS26lAj0A0VGl1snRl,"Gunfighter Ballads And Trail Songs",1959-06-30,15,album,2.83
-`;
-
-        const renderChart = (data) => {
-            // D3 margin conventions
-            const margin = { top: 20, right: 30, bottom: 60, left: 80 };
-            
-            // Define chart dimensions based on container width
-            const parentWidth = document.getElementById('chart').clientWidth;
-            const width = Math.min(parentWidth, 900) - margin.left - margin.right;
-            const height = 500 - margin.top - margin.bottom;
-
-            // Clear any existing SVG
-            d3.select("#chart").select("svg").remove();
-
-            // Create the main SVG element
-            const svg = d3.select("#chart")
-                .append("svg")
-                .attr("width", width + margin.left + margin.right)
-                .attr("height", height + margin.top + margin.bottom)
-                .append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
-
-            // --- 1. Scales ---
-
-            // X-axis: Track Duration (min)
-            const x = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.track_duration_min) * 1.05]) // Max duration + 5% buffer
-                .range([0, width]);
-
-            // Y-axis: Track Popularity (0-100)
-            const y = d3.scaleLinear()
-                .domain([0, 100]) // Popularity is 0-100
-                .range([height, 0]);
-
-            // --- 2. Axes ---
-
-            // Add X axis
-            svg.append("g")
-                .attr("class", "axis x-axis")
-                .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(x));
-
-            // Add X-axis Label
-            svg.append("text")
-                .attr("class", "text-sm text-gray-600 font-medium")
-                .attr("text-anchor", "middle")
-                .attr("x", width / 2)
-                .attr("y", height + margin.bottom - 10)
-                .text("Track Duration (minutes)");
-
-            // Add Y axis
-            svg.append("g")
-                .attr("class", "axis y-axis")
-                .call(d3.axisLeft(y));
-
-            // Add Y-axis Label
-            svg.append("text")
-                .attr("class", "text-sm text-gray-600 font-medium")
-                .attr("text-anchor", "middle")
-                .attr("transform", "rotate(-90)")
-                .attr("y", -margin.left + 20)
-                .attr("x", -height / 2)
-                .text("Track Popularity (0-100)");
-
-            // --- 3. Tooltip Handlers ---
-            const tooltip = d3.select("#tooltip");
-
-            const mouseover = function(event, d) {
-                tooltip.style("opacity", 1)
-                d3.select(this)
-                    .attr("r", 8) // increase size on hover
-                    .style("fill", "#ff8000") // change color
-                    .style("cursor", "pointer");
-            }
-
-            const mousemove = function(event, d) {
-                const tooltipHtml = `
-                    <div class="text-sm font-bold truncate max-w-xs">${d.track_name}</div>
-                    <div class="text-xs text-gray-300">by ${d.artist_name}</div>
-                    <div class="text-xs mt-1">Pop: ${d.track_popularity} | Dur: ${d.track_duration_min.toFixed(2)} min</div>
-                `;
-                tooltip
-                    .html(tooltipHtml)
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-            }
-
-            const mouseleave = function(event, d) {
-                tooltip.style("opacity", 0)
-                d3.select(this)
-                    .attr("r", 5) // reset size
-                    .style("fill", "#1DB954"); // reset color
-            }
-
-
-            // --- 4. Scatter Plot Points ---
-            svg.append('g')
-                .selectAll("dot")
-                .data(data)
-                .enter()
-                .append("circle")
-                .attr("cx", d => x(d.track_duration_min))
-                .attr("cy", d => y(d.track_popularity))
-                .attr("r", 5)
-                .style("fill", "#1DB954") /* Spotify Green */
-                .style("opacity", 0.8)
-                .on("mouseover", mouseover)
-                .on("mousemove", mousemove)
-                .on("mouseleave", mouseleave);
+        // --- HARDCODED SAMPLE DATA FOR PREVIEW ---
+        // Data has been replaced with the content from spotify_data clean.csv
+        const SAMPLE_TRACK_DATA = [
+            { track_id: "3EJS5LyekDim1Tf5rBFmZl", track_name: "Trippy Mane (ft. Project Pat)", track_popularity: "0", explicit: "TRUE", artist_name: "Diplo", artist_followers: 2812821, album_type: "album", track_duration_min: "1.55", artist_popularity: "77", artist_genres: "moombahton" },
+            { track_id: "1oQW6G2ZiwMuHqlPpP27DB", track_name: "OMG!", track_popularity: "0", explicit: "TRUE", artist_name: "Yelawolf", artist_followers: 2363438, album_type: "single", track_duration_min: "3.07", artist_popularity: "64", artist_genres: "country hip hop, southern hip hop" },
+            { track_id: "7mdkjzoIYlf1rx9EtBpGmU", track_name: "Hard 2 Find", track_popularity: "4", explicit: "TRUE", artist_name: "Riff Raff", artist_followers: 193302, album_type: "single", track_duration_min: "2.55", artist_popularity: "48", artist_genres: "N/A" },
+            { track_id: "67rW0Zl7oB3qEpD5YWWE5w", track_name: "Still Get Like That (ft. Project Pat & Starrah)", track_popularity: "30", explicit: "TRUE", artist_name: "Diplo", artist_followers: 2812821, album_type: "album", track_duration_min: "2.83", artist_popularity: "77", artist_genres: "moombahton" },
+            { track_id: "3OnCnEWgy79xR5pr2kv4TX", track_name: "Misirlou", track_popularity: "47", explicit: "FALSE", artist_name: "Dick Dale", artist_followers: 137984, album_type: "album", track_duration_min: "2.26", artist_popularity: "41", artist_genres: "surf rock" },
+            { track_id: "2QfiRTz5Yc8DdShCxG1tB2", track_name: "Johnny B. Goode", track_popularity: "74", explicit: "FALSE", artist_name: "Chuck Berry", artist_followers: 2211249, album_type: "album", track_duration_min: "2.69", artist_popularity: "63", artist_genres: "rockabilly, rock and roll" },
+            { track_id: "68FTJoO8edSpzuYb6lGW6P", track_name: "Saddle Tramp", track_popularity: "58", explicit: "FALSE", artist_name: "Marty Robbins", artist_followers: 626733, album_type: "album", track_duration_min: "2.05", artist_popularity: "61", artist_genres: "classic country, outlaw country" },
+            { track_id: "0AQquaENerGps8BQmbPw14", track_name: "Big Iron", track_popularity: "71", explicit: "FALSE", artist_name: "Marty Robbins", artist_followers: 626733, album_type: "album", track_duration_min: "3.92", artist_popularity: "60", artist_genres: "classic country, outlaw country" },
+        ];
+        
+        // Define the pre-trained coefficients (weights) for the Linear Regression model
+        const MODEL_COEFFICIENTS = {
+            bias: 35.0,
+            artistPopWeight: 0.8,
+            durationWeight: -1.5,
+            singleStatusWeight: 5.0 
         };
 
-        // --- Data Loading and Parsing ---
+        // DOM elements for inputs
+        const artistSelect = document.getElementById('artist-select');
+        const genreSelect = document.getElementById('genre-select');
+        const trackSelect = document.getElementById('track-select'); 
+        const artistFollowersInput = document.getElementById('artist-followers');
+        const explicitStatusInput = document.getElementById('explicit-status');
+        const albumTypeDisplay = document.getElementById('album-type-display');
+        const artistPopInput = document.getElementById('artist-pop');
+        const durationMinInput = document.getElementById('duration-min');
+        const summaryElement = document.getElementById('track-artist-summary');
+        
+        // DOM elements for output (needed for resetting)
+        const outputElement = document.getElementById('prediction-output');
+        const messageElement = document.getElementById('prediction-message');
 
-        const parseData = () => {
-            // Use D3's built-in CSV parser to handle the embedded string
-            // .parseRows is used here as a workaround to handle potential complex quoting/escaping, 
-            // but d3.csvParse is more direct for standard CSV. Let's use d3.csvParse.
-
-            const parsed = d3.csvParse(csvData, (d) => {
-                // Ensure required fields are converted to numbers
-                d.track_popularity = +d.track_popularity;
-                d.track_duration_min = +d.track_duration_min;
-                return d;
-            });
-
-            // Filter out any rows where the numeric conversion failed (resulted in NaN)
-            const cleanedData = parsed.filter(d => !isNaN(d.track_popularity) && !isNaN(d.track_duration_min));
-
-            console.log("Parsed Data:", cleanedData);
-            return cleanedData;
+        // Initial default state
+        const DEFAULT_SELECTION = {
+            artist: 'Custom Artist',
+            genre: 'custom genre',
+            track: 'Custom Track', 
+            followers: 'N/A',
+            artist_popularity: 75,
+            duration_min: 3.0,
+            explicit: 'N/A',
+            album_type: 'single'
         };
 
-        // --- Initialization ---
+        // Global map for quick lookups (Artist -> Genres, Features)
+        let ARTIST_METADATA = {};
+        let ALL_GENRES = new Set();
+        let ALL_ARTISTS = new Set();
+        let TRACK_MAP = {}; // Map to store tracks by ID for easy lookup
 
-        function initialize() {
-            const data = parseData();
-            if (data.length > 0) {
-                renderChart(data);
-            } else {
-                d3.select("#chart").html('<p class="text-red-500 font-semibold">Error: Could not load or parse the data correctly. Check the embedded CSV string.</p>');
-            }
+        // --- Core Functions for Two-Way Filtering ---
 
-            // Handle responsiveness on window resize
-            window.addEventListener('resize', () => {
-                // Throttle resize to prevent performance issues
-                clearTimeout(window.resizeTimer);
-                window.resizeTimer = setTimeout(() => {
-                    renderChart(data);
-                }, 150);
+        /**
+         * Builds the metadata map for artists and extracts all unique genres.
+         */
+        function buildMetadata() {
+            ARTIST_METADATA = {};
+            ALL_GENRES.clear();
+            ALL_ARTISTS.clear();
+            TRACK_MAP = {};
+
+            SAMPLE_TRACK_DATA.forEach(track => {
+                const artist = track.artist_name;
+                ALL_ARTISTS.add(artist);
+                TRACK_MAP[track.track_id] = track;
+
+                // Initialize artist entry if it doesn't exist
+                if (!ARTIST_METADATA[artist]) {
+                    ARTIST_METADATA[artist] = {
+                        tracks: [],
+                        followers: parseInt(track.artist_followers),
+                        popularity: parseInt(track.artist_popularity)
+                    };
+                }
+
+                // Collect track data 
+                ARTIST_METADATA[artist].tracks.push(track);
+                
+                // Collect genres for filtering
+                track.artist_genres.split(',').map(g => g.trim()).forEach(g => {
+                    ALL_GENRES.add(g);
+                });
             });
         }
 
-        initialize();
+        /**
+         * Handles when the Artist dropdown value changes.
+         * 1. Filters the Genre dropdown.
+         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
+         * 3. Loads the corresponding feature data (default/custom track).
+         */
+        function handleArtistChange() {
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
+            
+            // 1. Filter Genres based on selected Artist
+            filterGenreDropdown(selectedArtist);
+            
+            // If the previously selected genre is no longer available, reset the genre dropdown
+            if (!Array.from(genreSelect.options).some(option => option.value === selectedGenre)) {
+                genreSelect.selectedIndex = 0; // Select the first available genre or default
+            }
 
+            // 2. Filter Tracks based on the new combination
+            filterTrackDropdown(selectedArtist, genreSelect.value);
+
+            // 3. Load Features (NO prediction yet)
+            loadFeatures();
+        }
+
+        /**
+         * Handles when the Genre dropdown value changes.
+         * 1. Filters the Artist dropdown.
+         * 2. Filters the Track dropdown based on the new Artist/Genre combination.
+         * 3. Loads the corresponding feature data (default/custom track).
+         */
+        function handleGenreChange() {
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
+
+            // 1. Filter Artists based on selected Genre
+            filterArtistDropdown(selectedGenre);
+            
+            // If the previously selected artist is no longer available, reset the artist dropdown
+            if (!Array.from(artistSelect.options).some(option => option.value === selectedArtist)) {
+                artistSelect.selectedIndex = 0; // Select the first available artist or default
+            }
+
+            // 2. Filter Tracks based on the new combination
+            filterTrackDropdown(artistSelect.value, selectedGenre);
+
+            // 3. Load Features (NO prediction yet)
+            loadFeatures();
+        }
+        
+        /**
+         * Handles when the Track dropdown value changes.
+         * 1. Loads the specific track's features.
+         * 2. Runs the prediction.
+         */
+        function handleTrackChange() {
+            // No need to re-filter Artist/Genre dropdowns, just load the specific track features
+            loadFeatures();
+        }
+
+        /**
+         * Populates the Artist dropdown, filtering by an optional genre.
+         */
+        function filterArtistDropdown(filterGenre = null) {
+            const previousArtist = artistSelect.value;
+            artistSelect.innerHTML = `<option value="${DEFAULT_SELECTION.artist}">${DEFAULT_SELECTION.artist}</option>`;
+            let filteredArtists = Array.from(ALL_ARTISTS);
+
+            if (filterGenre && filterGenre !== DEFAULT_SELECTION.genre) {
+                filteredArtists = filteredArtists.filter(artist => {
+                    return ARTIST_METADATA[artist].tracks.some(track => 
+                        track.artist_genres.split(',').map(g => g.trim()).includes(filterGenre)
+                    );
+                });
+            }
+
+            filteredArtists.sort().forEach(artist => {
+                const option = document.createElement('option');
+                option.value = artist;
+                option.textContent = artist;
+                artistSelect.appendChild(option);
+            });
+            // Re-select previous value if still available
+            if (Array.from(artistSelect.options).some(option => option.value === previousArtist)) {
+                artistSelect.value = previousArtist;
+            }
+        }
+        
+        /**
+         * Populates the Genre dropdown, filtering by an optional artist.
+         */
+        function filterGenreDropdown(filterArtist = null) {
+            const previousGenre = genreSelect.value;
+            genreSelect.innerHTML = `<option value="${DEFAULT_SELECTION.genre}">${DEFAULT_SELECTION.genre}</option>`;
+            let filteredGenres = Array.from(ALL_GENRES);
+
+            if (filterArtist && filterArtist !== DEFAULT_SELECTION.artist) {
+                const artistTracks = ARTIST_METADATA[filterArtist]?.tracks || [];
+                const genresForArtist = new Set();
+                artistTracks.forEach(track => {
+                    track.artist_genres.split(',').map(g => g.trim()).forEach(g => genresForArtist.add(g));
+                });
+                filteredGenres = Array.from(genresForArtist);
+            }
+
+            filteredGenres.sort().forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre;
+                genreSelect.appendChild(option);
+            });
+            // Re-select previous value if still available
+            if (Array.from(genreSelect.options).some(option => option.value === previousGenre)) {
+                genreSelect.value = previousGenre;
+            }
+        }
+
+        /**
+         * Populates the Track dropdown based on the selected artist and genre.
+         */
+        function filterTrackDropdown(artist, genre) {
+            trackSelect.innerHTML = `<option value="${DEFAULT_SELECTION.track}">Custom Track</option>`;
+
+            if (artist === DEFAULT_SELECTION.artist) {
+                // If Custom Artist, no tracks to show
+                return;
+            }
+
+            // Filter tracks by BOTH artist and genre
+            const filteredTracks = ARTIST_METADATA[artist]?.tracks.filter(track => {
+                const trackGenres = track.artist_genres.split(',').map(g => g.trim());
+                return genre === DEFAULT_SELECTION.genre || trackGenres.includes(genre);
+            }) || [];
+            
+            filteredTracks.sort((a, b) => a.track_name.localeCompare(b.track_name)).forEach(track => {
+                const option = document.createElement('option');
+                option.value = track.track_id; // Use ID for unique identification
+                // Display track name and its actual popularity
+                option.textContent = `${track.track_name} (Pop: ${track.track_popularity})`; 
+                trackSelect.appendChild(option);
+            });
+        }
+
+        // --- Feature Loading and UI Logic ---
+        
+        /**
+         * Cleans up and formats large follower numbers.
+         */
+        function formatFollowers(count) {
+            if (isNaN(count)) return 'N/A';
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M';
+            }
+            if (count >= 1000) {
+                return (count / 1000).toFixed(0) + 'K';
+            }
+            return count.toString();
+        }
+
+        /**
+         * Loads and displays the feature data based on the current selections.
+         */
+        function loadFeatures() {
+            const selectedTrackId = trackSelect.value;
+            const selectedArtist = artistSelect.value;
+            const selectedGenre = genreSelect.value;
+
+            let features = {};
+            let isCustomMode = false;
+
+            if (selectedTrackId === DEFAULT_SELECTION.track || selectedArtist === DEFAULT_SELECTION.artist) {
+                // Case 1: Custom Track / Default Selection (Editable Inputs)
+                isCustomMode = true;
+                features = DEFAULT_SELECTION;
+                summaryElement.textContent = `${DEFAULT_SELECTION.track} | ${selectedArtist} | ${selectedGenre}`;
+            } else {
+                // Case 2: Specific Track Selected (Read-Only Inputs)
+                const track = TRACK_MAP[selectedTrackId];
+                if (!track) {
+                    // Fallback if track data is somehow missing
+                    return; 
+                }
+                
+                features = {
+                    artist: track.artist_name,
+                    genre: selectedGenre, // We stick with the genre filter for display
+                    followers: formatFollowers(parseInt(track.artist_followers)),
+                    artist_popularity: parseInt(track.artist_popularity),
+                    duration_min: parseFloat(track.track_duration_min),
+                    explicit: track.explicit.toUpperCase() === 'TRUE' ? 'Explicit' : 'Clean',
+                    album_type: track.album_type
+                };
+
+                summaryElement.textContent = `${track.track_name} | ${features.artist} (${selectedGenre})`;
+            }
+
+            // Update UI fields
+            setFeatureLock(!isCustomMode); // Lock if a real track is selected
+            trackSelect.disabled = (selectedArtist === DEFAULT_SELECTION.artist);
+
+            // Display values
+            artistFollowersInput.value = features.followers;
+            albumTypeDisplay.value = features.album_type.charAt(0).toUpperCase() + features.album_type.slice(1);
+            
+            // Set input values (ensuring they are populated in custom mode too)
+            artistPopInput.value = features.artist_popularity; 
+            durationMinInput.value = features.duration_min.toFixed(2); 
+            
+            // Explicit status styling
+            const statusText = features.explicit;
+            const statusColor = statusText === 'Explicit' ? 'bg-red-900/50 text-red-300' : 
+                                 statusText === 'Clean' ? 'bg-green-900/50 text-green-300' : 'bg-gray-700 text-gray-400';
+            explicitStatusInput.value = statusText;
+            explicitStatusInput.className = `mt-1 w-full p-3 text-center rounded-lg border border-gray-600 font-bold ${statusColor} input-locked`;
+
+            // --- Reset Prediction Output ---
+            outputElement.textContent = '--';
+            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-gray-700 shadow-xl`;
+            messageElement.textContent = 'Click "Predict Popularity" to calculate the score.';
+            messageElement.className = 'text-center text-lg font-semibold text-gray-400';
+        }
+
+        /**
+         * Toggles the read-only state and styling for the numerical feature inputs.
+         */
+        function setFeatureLock(isLocked) {
+            // Only Artist Pop and Duration are editable in Custom mode
+            const editableInputs = [artistPopInput, durationMinInput];
+            editableInputs.forEach(input => {
+                input.readOnly = isLocked;
+                input.classList.toggle('input-locked', isLocked);
+                input.classList.toggle('bg-gray-700', !isLocked);
+                input.classList.toggle('text-gray-400', isLocked);
+                input.classList.toggle('text-white', !isLocked);
+                input.setAttribute('tabindex', isLocked ? -1 : 0);
+            });
+        }
+
+        /**
+         * Resets all inputs and filters to the initial default state.
+         */
+        function handleReset() {
+            // Reset Dropdowns
+            artistSelect.value = DEFAULT_SELECTION.artist;
+            genreSelect.value = DEFAULT_SELECTION.genre;
+            trackSelect.value = DEFAULT_SELECTION.track;
+            
+            // Re-run the filtering logic to reset the available options
+            handleArtistChange(); // This triggers the full cascade to reset features
+            
+            // Explicitly load features for the default state and clear prediction
+            loadFeatures(); 
+        }
+        
+        // --- Prediction Logic (Runs ONLY when button is clicked) ---
+
+        function predictPopularity(artistPop, durationMin, isSingle) {
+            const { bias, artistPopWeight, durationWeight, singleStatusWeight } = MODEL_COEFFICIENTS;
+
+            let prediction = bias + 
+                             (artistPop * artistPopWeight) + 
+                             (durationMin * durationWeight) + 
+                             (isSingle ? singleStatusWeight : 0);
+
+            prediction = Math.max(0, Math.min(100, prediction));
+            return prediction;
+        }
+
+        function handlePrediction() {
+            // Get current selected features from the input fields
+            const artistPop = parseFloat(artistPopInput.value);
+            const durationMin = parseFloat(durationMinInput.value);
+            const albumType = albumTypeDisplay.value.toLowerCase();
+            const isSingle = albumType === 'single';
+
+            const outputElement = document.getElementById('prediction-output');
+            const messageElement = document.getElementById('prediction-message');
+            
+            // --- Input Validation ---
+            if (isNaN(artistPop) || artistPop < 0 || artistPop > 100 || isNaN(durationMin) || durationMin <= 0) {
+                outputElement.textContent = 'Err';
+                outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 border-red-500 shadow-xl transition-all duration-500`;
+                messageElement.textContent = 'Please ensure Artist Popularity (0-100) and Duration (Min 0.5) are valid numbers.';
+                messageElement.className = 'text-center text-lg font-semibold text-red-500';
+                return;
+            }
+
+            // --- Run Prediction ---
+            const predictedScore = predictPopularity(artistPop, durationMin, isSingle);
+
+            // --- Update UI ---
+            const roundedScore = Math.round(predictedScore);
+            outputElement.textContent = roundedScore;
+            
+            let colorClass = 'border-gray-500';
+            let message = "A niche track, potentially a deep cut or older release.";
+
+            if (roundedScore >= 80) {
+                colorClass = 'border-green-500';
+                message = "🔥 Mega Hit Potential! High probability of trending.";
+            } else if (roundedScore >= 60) {
+                colorClass = 'border-yellow-500';
+                message = "⭐ Strong Performer. Likely to be included in popular playlists.";
+            } else if (roundedScore >= 40) {
+                colorClass = 'border-blue-500';
+                message = "📈 Moderate Success. Solid track for the artist's discography.";
+            } else {
+                colorClass = 'border-red-500';
+                message = "📉 Low Popularity. May be an album filler or highly experimental.";
+            }
+            
+            outputElement.className = `text-6xl font-black text-white bg-gray-800 p-4 w-32 h-32 flex items-center justify-center rounded-full border-4 ${colorClass} shadow-xl transition-all duration-500`;
+            messageElement.textContent = message;
+            messageElement.className = 'text-center text-lg font-semibold ' + (roundedScore >= 80 ? 'text-green-400' : 'text-gray-400');
+        }
+
+        // --- Initialization ---
+
+        /**
+         * Initializes the application.
+         */
+        function initializeApp() {
+            buildMetadata();
+            // Initial population of all dropdowns with all options/defaults
+            filterArtistDropdown(null);
+            filterGenreDropdown(null);
+            filterTrackDropdown(DEFAULT_SELECTION.artist, DEFAULT_SELECTION.genre); 
+
+            // Select the default custom options initially
+            artistSelect.value = DEFAULT_SELECTION.artist;
+            genreSelect.value = DEFAULT_SELECTION.genre;
+            trackSelect.value = DEFAULT_SELECTION.track;
+            
+            // Load features for display, but DO NOT run initial prediction
+            loadFeatures();
+        }
+
+        // Initialize the app on page load
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
-
 </body>
-</html>
