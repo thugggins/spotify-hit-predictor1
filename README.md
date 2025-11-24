@@ -25,7 +25,6 @@ Data & Transparency
 
 Data Catalog: A transparent table at the bottom of the page displays the complete embedded dataset used for all predictions and lookups. Crucially, all missing data points (originally marked as NaN) are cleaned and displayed as "unknown" to ensure data completeness and readability.
 
-Model Logic (Simulated)
 ----------------------------------------------------
 
 The core prediction is calculated using a simplified formula based on four key features:
@@ -52,5 +51,6 @@ Download/Clone: Get the index.html file onto your local machine.
 Open in Browser: Simply double-click the index.html file, or open it directly in any modern web browser.
 
 Interact: Start selecting artists, genres, or custom tracks to see instant predictions.
+
 
 
